@@ -1,0 +1,6 @@
+/.local/
+/.tmp/
+*.log
+
+# Experience browser builds are generated and copied into release packages.
+/experiences/*/priv/static/

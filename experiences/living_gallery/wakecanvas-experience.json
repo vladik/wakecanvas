@@ -1,0 +1,40 @@
+{
+  "manifestVersion": 1,
+  "experienceId": "org.wakecanvas.experience.living-gallery",
+  "name": "Living Gallery",
+  "version": "0.1.0",
+  "otpApplication": "wake_canvas_experience_living_gallery",
+  "entryModule": "WakeCanvas.Experience.LivingGallery",
+  "sdkRequirement": ">= 0.1.0 and < 1.0.0",
+  "platformRequirement": ">= 0.1.0 and < 1.0.0",
+  "elixirRequirement": ">= 1.20.0 and < 2.0.0",
+  "otpRequirement": ">= 29.0.0 and < 30.0.0",
+  "capabilities": ["camera", "participant-devices"],
+  "configSchema": {
+    "artwork_auto_publish": {"type": "boolean", "default": true},
+    "moments_auto_publish": {"type": "boolean", "default": false},
+    "display_variant": {"type": "enum", "default": "living-collage", "values": ["living-collage", "quiet-spotlight"]}
+  },
+  "defaultDisplayVariant": "living-collage",
+  "displayVariants": [
+    {"id": "living-collage", "label": "Living Collage", "description": "Artwork within a drifting collage of workshop moments."},
+    {"id": "quiet-spotlight", "label": "Quiet Spotlight", "description": "One artwork takes centre stage against a calm backdrop."}
+  ],
+  "surfaces": [
+    {"id": "display", "path": "display", "module": "WakeCanvas.Experience.LivingGallery.DisplayLive", "role": "display"},
+    {"id": "artwork", "path": "artwork", "module": "WakeCanvas.Experience.LivingGallery.ArtworkIntakeLive", "role": "primary-intake"},
+    {"id": "moments", "path": "moments", "module": "WakeCanvas.Experience.LivingGallery.MomentsUploadLive", "role": "participant"},
+    {"id": "review", "path": "review", "module": "WakeCanvas.Experience.LivingGallery.ReviewLive", "role": "operator"},
+    {"id": "settings", "path": "settings", "module": "WakeCanvas.Experience.LivingGallery.SettingsLive", "role": "operator"}
+  ],
+  "frontendProfile": {
+    "name": "wakecanvas-web",
+    "version": 1,
+    "tailwind": "4.3.0",
+    "daisyui": "5.5.20"
+  },
+  "browser": {
+    "renderer": "static/experience.js",
+    "stylesheet": "static/experience.css"
+  }
+}
