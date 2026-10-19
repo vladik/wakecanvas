@@ -6,6 +6,6 @@ defmodule WakeCanvas.ExperienceSDK.ConfigAPI do
   a compile-time dependency on the WakeCanvas platform.
   """
 
-  @callback update_instance_config(pos_integer(), map()) ::
+  @callback update_instance_config(String.t(), map()) ::
               {:ok, map()} | {:error, term()}
 end

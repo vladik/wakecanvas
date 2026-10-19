@@ -12,10 +12,22 @@ function Invoke-Mix {
   }
 }
 
+function Invoke-Npm {
+  & npm install
+
+  if ($LASTEXITCODE -ne 0) {
+    throw "npm install failed with exit code $LASTEXITCODE"
+  }
+}
+
 Push-Location (Join-Path $repositoryRoot 'experiences/living_gallery')
 try {
   Invoke-Mix @('deps.get')
-  Invoke-Mix @('compile')
+  Invoke-Mix @('deps.compile', 'wake_canvas_experience_sdk', '--force')
+  Invoke-Mix @('compile', '--force')
+  Invoke-Npm
+  Invoke-Mix @('assets.setup')
+  Invoke-Mix @('assets.build')
 }
 finally {
   Pop-Location
@@ -24,9 +36,13 @@ finally {
 Push-Location (Join-Path $repositoryRoot 'platform')
 try {
   Invoke-Mix @('deps.get')
+  Invoke-Mix @('deps.compile', 'wake_canvas_experience_sdk', '--force')
+  Invoke-Mix @('compile', '--force')
   Invoke-Mix @('ecto.create', '--quiet')
   Invoke-Mix @('ecto.migrate')
   Invoke-Mix @('run', 'priv/repo/seeds.exs')
+  Invoke-Mix @('assets.setup')
+  Invoke-Mix @('assets.build')
   Invoke-Mix @('phx.server')
 }
 finally {

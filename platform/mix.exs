@@ -9,6 +9,7 @@ defmodule WakeCanvas.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
+      releases: releases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader]
@@ -21,7 +22,7 @@ defmodule WakeCanvas.MixProject do
   def application do
     [
       mod: {WakeCanvas.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :os_mon]
     ]
   end
 
@@ -70,6 +71,7 @@ defmodule WakeCanvas.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
+      {:eqrcode, "~> 0.2.1"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"}
     ]
@@ -90,11 +92,21 @@ defmodule WakeCanvas.MixProject do
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind wake_canvas", "esbuild wake_canvas"],
       "assets.deploy": [
+        "compile",
         "tailwind wake_canvas --minify",
         "esbuild wake_canvas --minify",
         "phx.digest"
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+    ]
+  end
+
+  defp releases do
+    [
+      wake_canvas: [
+        include_executables_for: [:unix, :windows],
+        strip_beams: Mix.env() == :prod
+      ]
     ]
   end
 end

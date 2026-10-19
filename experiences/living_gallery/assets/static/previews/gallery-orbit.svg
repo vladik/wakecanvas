@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title">
+  <title id="title">Gallery Orbit preview</title>
+  <defs><linearGradient id="bg" x2="0" y2="1"><stop stop-color="#17232b"/><stop offset="1" stop-color="#080b0d"/></linearGradient></defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <path d="M80 280Q320 45 560 280" fill="none" stroke="#67808a" stroke-width="3" opacity=".55"/>
+  <g stroke="#f6dfbd" stroke-width="4"><path d="M70 105l135 25v145L70 300z" fill="#5e806f"/><rect x="250" y="55" width="140" height="205" fill="#c36f54"/><path d="M435 125l135-25v200l-135-25z" fill="#c7ac76"/></g>
+  <circle cx="320" cy="300" r="7" fill="#fff2cf"/>
+</svg>

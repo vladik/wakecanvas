@@ -1,0 +1,10 @@
+.git
+.github
+.tmp
+dist
+.local
+**/_build
+**/deps
+**/node_modules
+**/priv/static
+*.log

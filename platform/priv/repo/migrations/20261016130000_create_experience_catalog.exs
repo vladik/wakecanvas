@@ -11,12 +11,15 @@ defmodule WakeCanvas.Repo.Migrations.CreateExperienceCatalog do
       timestamps(type: :utc_datetime)
     end
 
-    create table(:experience_instances) do
+    create table(:experience_instances, primary_key: false) do
+      add :id, :binary_id, primary_key: true
+
       add :experience_id,
           references(:experience_packages, column: :id, type: :string, on_delete: :restrict),
           null: false
 
       add :name, :string, null: false
+      add :slug, :string
       add :config, :map, null: false, default: %{}
       add :active, :boolean, null: false, default: false
 
@@ -24,6 +27,7 @@ defmodule WakeCanvas.Repo.Migrations.CreateExperienceCatalog do
     end
 
     create index(:experience_instances, [:experience_id])
+    create unique_index(:experience_instances, [:slug], where: "slug IS NOT NULL")
 
     create unique_index(:experience_instances, [:active],
              where: "active = 1",

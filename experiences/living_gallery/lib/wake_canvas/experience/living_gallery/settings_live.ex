@@ -12,6 +12,7 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
        page_title: "Living Gallery Settings",
        instance_id: session["instance_id"],
        instance_name: session["instance_name"],
+       asset_base_url: session["experience_asset_base_url"],
        config_api: session["config_api"],
        config: Config.with_defaults(session["config"]),
        variants: definition.display_variants,
@@ -35,6 +36,8 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
     patch = %{
       "artwork_auto_publish" => settings["artwork_auto_publish"] == "true",
       "moments_auto_publish" => settings["moments_auto_publish"] == "true",
+      "messages_auto_publish" => settings["messages_auto_publish"] == "true",
+      "retain_originals" => settings["retain_originals"] == "true",
       "display_variant" => socket.assigns.selected_variant
     }
 
@@ -68,20 +71,17 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
             <p style="margin:.2rem 0 1rem;color:#74695b">This variant opens automatically after the kiosk restarts.</p>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem">
               <div :for={variant <- @variants} style={["display:grid;gap:.8rem;padding:.8rem;border:2px solid;border-radius:16px", if(@selected_variant == variant.id, do: "border-color:#2d5d50;background:#f0f6f2", else: "border-color:#ddd4c7;background:white")]}>
-                <div style={["height:120px;border-radius:11px;position:relative;overflow:hidden", if(variant.id == "living-collage", do: "background:radial-gradient(circle at 20% 25%,#735f44,transparent 35%),#1c211e", else: "background:radial-gradient(circle at 50% 45%,#6d5940,transparent 28%),#111210")]}>
-                  <span :if={variant.id == "living-collage"} style="position:absolute;left:12%;top:20%;width:34%;height:45%;background:#d9cdb9;transform:rotate(-6deg);box-shadow:45px 30px 0 #a89a84"></span>
-                  <span style={["position:absolute;background:#f8f3e8;box-shadow:0 8px 24px #0008", if(variant.id == "living-collage", do: "left:42%;top:25%;width:42%;height:58%;transform:rotate(2deg)", else: "left:31%;top:14%;width:38%;height:70%")]}></span>
-                </div>
+                <img src={"#{@asset_base_url}/#{variant.thumbnail}"} alt={"#{variant.label} preview"} style="display:block;width:100%;height:120px;border-radius:11px;object-fit:cover;background:#111210" />
                 <label style="display:flex;align-items:flex-start;gap:.7rem;cursor:pointer">
                   <input type="radio" name="settings[display_variant]" value={variant.id} checked={@selected_variant == variant.id} phx-click="select_variant" phx-value-variant={variant.id} style="margin-top:.25rem" />
                   <span><strong style="display:block">{variant.label}</strong><small style="display:block;margin-top:.25rem;color:#74695b;line-height:1.4">{variant.description}</small></span>
                 </label>
-                <a href={"/i/#{@instance_id}/display?variant=#{variant.id}"} target="_blank" style="justify-self:start;color:#2d5d50;font-weight:600">Preview variant ↗</a>
+                <a href={"/i/#{@instance_id}/display/#{variant.id}"} target="_blank" style="justify-self:start;color:#2d5d50;font-weight:600">Preview variant ↗</a>
               </div>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1rem">
               <small style="color:#74695b">Previewing does not change what starts after reboot.</small>
-              <a href={"/i/#{@instance_id}/display?variant=#{@selected_variant}"} target="_blank" style="display:inline-block;border:1px solid #2d5d50;border-radius:10px;padding:.65rem 1rem;color:#2d5d50;font-weight:700;text-decoration:none">Preview selected variant ↗</a>
+              <a href={"/i/#{@instance_id}/display/#{@selected_variant}"} target="_blank" style="display:inline-block;border:1px solid #2d5d50;border-radius:10px;padding:.65rem 1rem;color:#2d5d50;font-weight:700;text-decoration:none">Preview selected variant ↗</a>
             </div>
           </fieldset>
 
@@ -93,6 +93,16 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
           <label style="display:flex;align-items:flex-start;gap:1rem;padding:1rem;border:1px solid #ddd4c7;border-radius:14px;cursor:pointer">
             <input type="checkbox" name="settings[moments_auto_publish]" value="true" checked={@config["moments_auto_publish"]} style="width:1.3rem;height:1.3rem;margin-top:.15rem" />
             <span><strong style="display:block">Automatically publish Workshop Moments</strong><small style="display:block;margin-top:.35rem;color:#74695b;line-height:1.45">Workshop photographs appear immediately instead of waiting for review.</small></span>
+          </label>
+
+          <label style="display:flex;align-items:flex-start;gap:1rem;padding:1rem;border:1px solid #ddd4c7;border-radius:14px;cursor:pointer">
+            <input type="checkbox" name="settings[messages_auto_publish]" value="true" checked={@config["messages_auto_publish"]} style="width:1.3rem;height:1.3rem;margin-top:.15rem" />
+            <span><strong style="display:block">Automatically publish messages</strong><small style="display:block;margin-top:.35rem;color:#74695b;line-height:1.45">Visitor reflections and testimonials appear immediately instead of waiting for review.</small></span>
+          </label>
+
+          <label style="display:flex;align-items:flex-start;gap:1rem;padding:1rem;border:1px solid #ddd4c7;border-radius:14px;cursor:pointer">
+            <input type="checkbox" name="settings[retain_originals]" value="true" checked={@config["retain_originals"]} style="width:1.3rem;height:1.3rem;margin-top:.15rem" />
+            <span><strong style="display:block">Retain original photographs</strong><small style="display:block;margin-top:.35rem;color:#74695b;line-height:1.45">Keep a private original beside the prepared display image so artwork can be reprocessed later. Disable this for privacy or limited disk space.</small></span>
           </label>
 
           <button type="submit" style="justify-self:end;border:0;border-radius:12px;padding:.9rem 1.4rem;background:#2d5d50;color:white;font-weight:700;font-size:1rem;cursor:pointer">Save settings</button>

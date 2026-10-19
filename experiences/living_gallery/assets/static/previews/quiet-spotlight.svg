@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title">
+  <title id="title">Quiet Spotlight preview</title>
+  <defs><radialGradient id="light"><stop stop-color="#8d775b"/><stop offset=".48" stop-color="#302d28"/><stop offset="1" stop-color="#101211"/></radialGradient></defs>
+  <rect width="640" height="360" fill="url(#light)"/>
+  <rect x="220" y="34" width="200" height="292" rx="9" fill="#f5efe2" stroke="#d9c9ad" stroke-width="7"/>
+  <path d="M250 235c24-85 113-105 143 0v53H250z" fill="#567b70"/><circle cx="320" cy="135" r="57" fill="#d7855f"/>
+</svg>

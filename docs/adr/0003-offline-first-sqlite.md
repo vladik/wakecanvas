@@ -7,6 +7,9 @@
 
 Use one platform-owned SQLite database and one isolated SQLite database per
 Experience instance. Store large media in instance-specific filesystem directories.
+Use WAL and a ten-second busy timeout for platform and instance connections. Keep
+transactions short and treat any remaining busy response as bounded, retryable
+contention rather than an unhandled visitor-facing error.
 
 ## Consequences
 

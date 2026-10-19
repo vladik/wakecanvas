@@ -20,7 +20,7 @@ defmodule WakeCanvas.ExperienceSDK.Instance do
   defstruct [:id, :experience_id, :experience_version, :name, :config, :data_dir, :database_path]
 
   @type t :: %__MODULE__{
-          id: pos_integer(),
+          id: String.t(),
           experience_id: String.t(),
           experience_version: String.t(),
           name: String.t(),

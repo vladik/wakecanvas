@@ -12,6 +12,10 @@ config :wake_canvas,
   generators: [timestamp_type: :utc_datetime],
   data_root: Path.expand("../data", __DIR__)
 
+config :wake_canvas, WakeCanvas.Repo,
+  journal_mode: :wal,
+  busy_timeout: 10_000
+
 # Configure the endpoint
 config :wake_canvas, WakeCanvasWeb.Endpoint,
   url: [host: "localhost"],
@@ -61,6 +65,11 @@ config :logger, :default_formatter,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+config :mime, :types, %{
+  "application/vnd.wakecanvas.experience+zip" => ["wakecanvas"],
+  "application/vnd.wakecanvas.instance+zip" => ["wakecanvas-instance"]
+}
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

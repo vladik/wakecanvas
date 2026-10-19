@@ -16,12 +16,9 @@ import Config
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
-if System.get_env("PHX_SERVER") do
+if System.get_env("PHX_SERVER") || System.get_env("RELEASE_NAME") do
   config :wake_canvas, WakeCanvasWeb.Endpoint, server: true
 end
-
-config :wake_canvas, WakeCanvasWeb.Endpoint,
-  http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
@@ -41,16 +38,41 @@ if config_env() == :dev do
 end
 
 if config_env() == :prod do
-  database_path =
-    System.get_env("DATABASE_PATH") ||
-      raise """
-      environment variable DATABASE_PATH is missing.
-      For example: /etc/wake_canvas/wake_canvas.db
-      """
+  release_root = System.get_env("RELEASE_ROOT")
+
+  data_root =
+    System.get_env("WAKECANVAS_DATA_ROOT") ||
+      if release_root do
+        Path.join(release_root, "data")
+      else
+        Path.expand("../.tmp/prod-data", __DIR__)
+      end
+
+  config_root = Path.join(data_root, "config")
+  File.mkdir_p!(config_root)
+
+  database_path = System.get_env("DATABASE_PATH") || Path.join(data_root, "wake_canvas.sqlite3")
+
+  management_code =
+    case System.get_env("WAKECANVAS_MANAGEMENT_CODE") do
+      nil ->
+        case File.read(Path.join(config_root, "management_code")) do
+          {:ok, code} -> String.trim(code)
+          {:error, :enoent} -> ""
+          {:error, reason} -> raise "cannot read management code: #{inspect(reason)}"
+        end
+
+      code ->
+        String.trim(code)
+    end
+
+  config :wake_canvas,
+    data_root: data_root,
+    management_code: management_code
 
   config :wake_canvas, WakeCanvas.Repo,
     database: database_path,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "1")
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
@@ -58,25 +80,51 @@ if config_env() == :prod do
   # to check this value into version control, so we use an environment
   # variable instead.
   secret_key_base =
-    System.get_env("SECRET_KEY_BASE") ||
-      raise """
-      environment variable SECRET_KEY_BASE is missing.
-      You can generate one by calling: mix phx.gen.secret
-      """
+    case System.get_env("SECRET_KEY_BASE") do
+      nil when not is_nil(release_root) ->
+        secret_path = Path.join(config_root, "secret_key_base")
 
-  host = System.get_env("PHX_HOST") || "example.com"
+        case File.read(secret_path) do
+          {:ok, secret} ->
+            String.trim(secret)
+
+          {:error, :enoent} ->
+            secret = :crypto.strong_rand_bytes(64) |> Base.url_encode64(padding: false)
+            File.write!(secret_path, secret <> "\n")
+            secret
+
+          {:error, reason} ->
+            raise "cannot read kiosk secret: #{inspect(reason)}"
+        end
+
+      nil ->
+        # Compile-time Mix commands load runtime.exs without running a release.
+        String.duplicate("build-only-secret-", 4)
+
+      secret ->
+        secret
+    end
+
+  host = System.get_env("PHX_HOST") || "localhost"
+  scheme = System.get_env("PHX_SCHEME") || "http"
+  port = String.to_integer(System.get_env("PORT", "4000"))
+  url_port = String.to_integer(System.get_env("PHX_URL_PORT", Integer.to_string(port)))
+  bind_address = System.get_env("WAKECANVAS_BIND_IP", "0.0.0.0")
+
+  bind_ip =
+    case :inet.parse_address(String.to_charlist(bind_address)) do
+      {:ok, address} ->
+        address
+
+      {:error, reason} ->
+        raise "invalid WAKECANVAS_BIND_IP #{inspect(bind_address)}: #{inspect(reason)}"
+    end
 
   config :wake_canvas, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :wake_canvas, WakeCanvasWeb.Endpoint,
-    url: [host: host, port: 443, scheme: "https"],
-    http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://bandit.hexdocs.pm/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
-    ],
+    url: [host: host, port: url_port, scheme: scheme],
+    http: [ip: bind_ip, port: port],
     secret_key_base: secret_key_base
 
   # ## SSL Support

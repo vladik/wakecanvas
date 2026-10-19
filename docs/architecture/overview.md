@@ -41,6 +41,11 @@ time. Switching between two instances of the same package follows the same clean
 stop/start lifecycle as switching between different Experiences; this keeps
 hardware and state ownership predictable.
 
+`ActiveInstanceManager` coordinates the catalog selection with an
+`ActiveInstanceSupervisor`. An Experience may supply an instance child spec; a
+generic runtime is used otherwise. The old runtime stops before its replacement
+starts, and a failed switch restores the prior runtime when possible.
+
 ## Runtime invariants
 
 - An installation may have zero or more registered Experience packages and
@@ -71,34 +76,56 @@ asset entry points, theme variables, and compatible frontend profile. It does no
 provide runtime CSS or JavaScript. Custom CSS must be scoped below the Experience
 root. Renderer libraries and their versions belong to the Experience bundle.
 
+The shared `@wakecanvas/media` source package is a build-time option, not a global
+browser runtime. A consuming Experience compiles the worker and adapter into its
+own assets. Experiences that do not use it download nothing.
+
+Optional camera, microphone, and sensor inputs remain browser- or
+Experience-runtime concerns. For example, Growing Canvas requests microphone
+permission only after a visitor/operator gesture, converts audio to a local level,
+and releases its stream and audio graph in `destroy()`. Raw audio is neither sent
+to Phoenix nor persisted. Denial degrades to the deterministic silent renderer.
+
 ## Browser surfaces and routes
 
 An Experience declares any number of named browser surfaces. Each surface supplies
 a relative path, LiveView module, label, and role such as display, primary intake,
 participant, or operator. The platform owns the router and mounts these surfaces
-below an immutable installation-local integer instance ID:
+below the instance's immutable UUID:
 
 ```text
-/i/12/display
-/i/12/artwork
-/i/12/moments
-/i/12/review
+/i/550e8400-e29b-41d4-a716-446655440000/display
+/i/550e8400-e29b-41d4-a716-446655440000/artwork
+/i/550e8400-e29b-41d4-a716-446655440000/moments
+/i/550e8400-e29b-41d4-a716-446655440000/review
 ```
 
-Instance names such as “Morning Workshop” are editable labels and never appear as
-route identifiers. The platform may expose `/display` and `/intake` as convenience
-aliases for the active instance's display and primary-intake surfaces. Experience
-packages cannot claim arbitrary top-level routes.
+Instance names such as “Morning Workshop” are editable labels and never identify
+records. An optional installation-local unique slug can provide a convenient route
+alias, but canonical links, storage, and exports always use the UUID. The platform
+may expose `/display` and `/intake` as convenience aliases for the active instance's
+display and primary-intake surfaces. Experience packages cannot claim arbitrary
+top-level routes.
 
 ## Storage
 
 The platform uses `platform.sqlite` for package inventory, instance records, active
 selection, platform configuration, and hardware configuration. Each instance has a
-separate database at `data/instances/<instance-id>/experience.sqlite`; its
+separate database at `data/instances/<instance-uuid>/experience.sqlite`; its
 Experience package owns that database's schemas and migrations.
+
+All SQLite connections use WAL and a ten-second busy timeout. Write transactions
+remain short so bursts of local-network uploads wait rather than surfacing ordinary
+lock contention to visitors.
 
 Media files live outside SQLite under the same instance-specific data directory.
 The instance database stores their metadata and relative paths.
+
+Management and operator surfaces require the installation-wide six-digit code when
+configured. Participant surfaces may use a separate six-digit code per instance;
+an empty participant code intentionally leaves that workshop open. Successful code
+entry creates a signed session, and rotating a participant code invalidates that
+instance's earlier sessions.
 
 The instance directory is also the deletion boundary. Experiences must place all
 persistent instance-owned files below it. Deleting an instance removes that entire

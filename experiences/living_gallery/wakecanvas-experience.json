@@ -5,25 +5,32 @@
   "version": "0.1.0",
   "otpApplication": "wake_canvas_experience_living_gallery",
   "entryModule": "WakeCanvas.Experience.LivingGallery",
+  "target": "any",
   "sdkRequirement": ">= 0.1.0 and < 1.0.0",
   "platformRequirement": ">= 0.1.0 and < 1.0.0",
   "elixirRequirement": ">= 1.20.0 and < 2.0.0",
   "otpRequirement": ">= 29.0.0 and < 30.0.0",
-  "capabilities": ["camera", "participant-devices"],
+  "capabilities": ["camera", "microphone", "participant-devices"],
   "configSchema": {
     "artwork_auto_publish": {"type": "boolean", "default": true},
     "moments_auto_publish": {"type": "boolean", "default": false},
-    "display_variant": {"type": "enum", "default": "living-collage", "values": ["living-collage", "quiet-spotlight"]}
+    "messages_auto_publish": {"type": "boolean", "default": false},
+    "retain_originals": {"type": "boolean", "default": true},
+    "display_variant": {"type": "enum", "default": "living-collage", "values": ["living-collage", "quiet-spotlight", "gallery-orbit", "growing-canvas", "community-tapestry"]}
   },
   "defaultDisplayVariant": "living-collage",
   "displayVariants": [
-    {"id": "living-collage", "label": "Living Collage", "description": "Artwork within a drifting collage of workshop moments."},
-    {"id": "quiet-spotlight", "label": "Quiet Spotlight", "description": "One artwork takes centre stage against a calm backdrop."}
+    {"id": "living-collage", "label": "Living Collage", "description": "Artwork within a drifting collage of workshop moments.", "entrypoint": "static/variants/drifting-collage.js", "thumbnail": "static/previews/living-collage.svg", "capabilities": ["webgl"], "fallback": "community-tapestry"},
+    {"id": "quiet-spotlight", "label": "Quiet Spotlight", "description": "One artwork takes centre stage against a calm backdrop.", "entrypoint": "static/variants/quiet-spotlight.js", "thumbnail": "static/previews/quiet-spotlight.svg"},
+    {"id": "gallery-orbit", "label": "Gallery Orbit", "description": "Artwork travels through a calm three-dimensional gallery.", "entrypoint": "static/variants/gallery-orbit.js", "thumbnail": "static/previews/gallery-orbit.svg", "capabilities": ["webgl2"], "fallback": "community-tapestry"},
+    {"id": "growing-canvas", "label": "Growing Canvas", "description": "Each contribution becomes a seed in a generative garden.", "entrypoint": "static/variants/growing-canvas.js", "thumbnail": "static/previews/growing-canvas.svg", "capabilities": ["webgl"], "fallback": "community-tapestry"},
+    {"id": "community-tapestry", "label": "Community Tapestry", "description": "An accessible low-power community composition.", "entrypoint": "static/variants/community-tapestry.js", "thumbnail": "static/previews/community-tapestry.svg"}
   ],
   "surfaces": [
-    {"id": "display", "path": "display", "module": "WakeCanvas.Experience.LivingGallery.DisplayLive", "role": "display"},
+    {"id": "display", "path": "display", "module": "WakeCanvas.Experience.LivingGallery.RendererDisplayLive", "role": "display"},
     {"id": "artwork", "path": "artwork", "module": "WakeCanvas.Experience.LivingGallery.ArtworkIntakeLive", "role": "primary-intake"},
     {"id": "moments", "path": "moments", "module": "WakeCanvas.Experience.LivingGallery.MomentsUploadLive", "role": "participant"},
+    {"id": "messages", "path": "messages", "module": "WakeCanvas.Experience.LivingGallery.MessageIntakeLive", "role": "participant"},
     {"id": "review", "path": "review", "module": "WakeCanvas.Experience.LivingGallery.ReviewLive", "role": "operator"},
     {"id": "settings", "path": "settings", "module": "WakeCanvas.Experience.LivingGallery.SettingsLive", "role": "operator"}
   ],
@@ -34,7 +41,7 @@
     "daisyui": "5.5.20"
   },
   "browser": {
-    "renderer": "static/experience.js",
+    "renderers": "static/variants/*.js",
     "stylesheet": "static/experience.css"
   }
 }

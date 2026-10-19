@@ -11,6 +11,7 @@ config :wake_canvas, WakeCanvas.Repo,
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :wake_canvas, :data_root, Path.expand("../tmp/test-data", __DIR__)
+config :wake_canvas, :restore_active_instance, false
 
 config :wake_canvas, :development_experiences, [
   %{

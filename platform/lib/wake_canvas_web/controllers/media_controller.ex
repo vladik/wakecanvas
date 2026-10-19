@@ -5,8 +5,7 @@ defmodule WakeCanvasWeb.MediaController do
   alias WakeCanvas.Experiences.InstancePaths
 
   def show(conn, %{"instance_id" => id, "filename" => filename}) do
-    with {instance_id, ""} <- Integer.parse(id),
-         instance when not is_nil(instance) <- Experiences.get_instance(instance_id),
+    with instance when not is_nil(instance) <- Experiences.get_instance(id),
          true <- safe_filename?(filename),
          path = Path.join(InstancePaths.media_dir(instance.id), filename),
          true <- File.regular?(path) do

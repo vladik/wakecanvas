@@ -10,6 +10,9 @@ as an operator-created configuration of that code. Allow many instances per
 package, give every instance isolated configuration, SQLite, and media storage, and
 permit zero or one active instance per kiosk.
 
+Instance identity is refined by ADR-0006: UUIDs replace the initial local integer
+prototype IDs.
+
 Activating another instance always performs a controlled stop/start transition,
 even when both instances use the same package.
 

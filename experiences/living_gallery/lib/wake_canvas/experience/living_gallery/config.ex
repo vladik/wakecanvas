@@ -4,6 +4,8 @@ defmodule WakeCanvas.Experience.LivingGallery.Config do
   @defaults %{
     "artwork_auto_publish" => true,
     "moments_auto_publish" => false,
+    "messages_auto_publish" => false,
+    "retain_originals" => true,
     "display_variant" => "living-collage"
   }
 
@@ -15,4 +17,10 @@ defmodule WakeCanvas.Experience.LivingGallery.Config do
 
   def auto_publish?(config, "workshop_moment"),
     do: Map.get(with_defaults(config), "moments_auto_publish") == true
+
+  def auto_publish?(config, "message"),
+    do: Map.get(with_defaults(config), "messages_auto_publish") == true
+
+  def retain_originals?(config),
+    do: Map.get(with_defaults(config), "retain_originals") == true
 end

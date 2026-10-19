@@ -70,7 +70,25 @@ config :phoenix_live_view,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
 
-config :wake_canvas, :development_experiences, [
+external_experience =
+  case {
+    System.get_env("WAKECANVAS_DEV_EXPERIENCE_EBIN"),
+    System.get_env("WAKECANVAS_DEV_EXPERIENCE_ENTRY_MODULE")
+  } do
+    {nil, nil} ->
+      []
+
+    {ebin, entry_module} when is_binary(ebin) and is_binary(entry_module) ->
+      [%{ebin: Path.expand(ebin), entry_module: entry_module, register_in_catalog: true}]
+
+    _ ->
+      raise """
+      WAKECANVAS_DEV_EXPERIENCE_EBIN and WAKECANVAS_DEV_EXPERIENCE_ENTRY_MODULE
+      must either both be set or both be omitted.
+      """
+  end
+
+built_in_experiences = [
   %{
     entry_module: "WakeCanvas.Experience.LivingGallery",
     ebin:
@@ -80,3 +98,5 @@ config :wake_canvas, :development_experiences, [
       )
   }
 ]
+
+config :wake_canvas, :development_experiences, built_in_experiences ++ external_experience

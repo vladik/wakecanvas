@@ -43,11 +43,28 @@ defmodule WakeCanvas.Experience.LivingGallery.MixProject do
     [
       setup: ["deps.get", "assets.setup", "assets.build"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["tailwind living_gallery", "esbuild living_gallery"],
+      "assets.build": [
+        &copy_static/1,
+        "tailwind living_gallery",
+        "esbuild living_gallery",
+        "esbuild living_gallery_media",
+        "compile --force"
+      ],
       "assets.deploy": [
+        &copy_static/1,
         "tailwind living_gallery --minify",
-        "esbuild living_gallery --minify"
+        "esbuild living_gallery --minify",
+        "esbuild living_gallery_media --minify",
+        "compile --force"
       ]
     ]
+  end
+
+  defp copy_static(_args) do
+    source = Path.expand("assets/static", __DIR__)
+    destination = Path.expand("priv/static", __DIR__)
+    File.mkdir_p!(destination)
+    File.cp_r!(source, destination)
+    :ok
   end
 end

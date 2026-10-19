@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title">
+  <title id="title">Growing Canvas preview</title>
+  <rect width="640" height="360" fill="#17202b"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M80 360q60-110 15-205q90 55 112-90" stroke="#69c59d" stroke-width="10"/><path d="M245 360q-30-120 62-260q-8 105 75 170" stroke="#e3a15c" stroke-width="8"/><path d="M430 360q100-120 35-280q100 100 95 210" stroke="#8c91e8" stroke-width="11"/>
+    <path d="M110 235l-55-35m72-22l55-47M290 205l-62-25m92-37l58-43M478 230l-58-50m75-30l55-38" stroke="#d8ead9" stroke-width="5"/>
+  </g>
+  <g fill="#f8e4a8"><circle cx="95" cy="155" r="13"/><circle cx="307" cy="100" r="13"/><circle cx="465" cy="80" r="13"/></g>
+</svg>

@@ -2,7 +2,7 @@ defmodule WakeCanvas.ExperienceSDK.Surface do
   @moduledoc """
   A browser surface contributed by an Experience behind a platform-owned route.
 
-  `path` is one relative URL segment below `/i/:instance_id/`. The platform keeps
+  `path` is one relative URL segment below `/i/:instance_uuid/`. The platform keeps
   control of the endpoint and resolves the module through the active package.
   """
 

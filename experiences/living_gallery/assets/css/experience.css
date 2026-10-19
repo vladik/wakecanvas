@@ -9,11 +9,78 @@
 }
 
 [data-wakecanvas-experience="living-gallery"] {
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: #111;
 }
+
+.lg-renderer-loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  color: #f8f3e8;
+  font: 500 clamp(1.2rem, 2vw, 2rem) Georgia, serif;
+}
+
+.spotlight-wall {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #f7f0e3;
+  background: radial-gradient(circle at 50% 44%, #473d2f, transparent 34%), #0d0e0c;
+}
+
+.spotlight-wall > header {
+  position: absolute;
+  z-index: 5;
+  top: 5vh;
+  left: 50%;
+  translate: -50%;
+  font: 500 clamp(1.8rem, 3vw, 3.6rem) Georgia, serif;
+}
+
+.spotlight-artwork {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 50%;
+  width: min(48vw, 680px);
+  height: min(65vh, 720px);
+  padding: 1.2rem;
+  translate: -50% -47%;
+  background: #f9f5ea;
+  box-shadow: 0 45px 130px #000, 0 0 80px #d4ad6b22;
+}
+
+.spotlight-artwork img { width: 100%; height: 100%; object-fit: contain; }
+.spotlight-moment { position: relative; width: 13vw; max-width: 210px; margin: 5vh 5vw; opacity: .36; }
+.spotlight-waiting { position: absolute; left: 50%; top: 50%; translate: -50% -50%; }
+.spotlight-wall > .wc-art-credit { position: absolute; z-index: 8; left: 50%; bottom: 4vh; translate: -50%; }
+
+.tapestry-wall {
+  min-height: 100vh;
+  padding: clamp(1rem, 4vw, 4rem);
+  color: #30281f;
+  background: #e9dec9;
+  background-image: linear-gradient(90deg, #8d523014 1px, transparent 1px), linear-gradient(#8d523014 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.tapestry-wall header span { display: block; text-transform: uppercase; letter-spacing: .2em; font-size: .72rem; }
+.tapestry-wall header strong { display: block; margin-top: .35rem; font: 500 clamp(2rem, 5vw, 5rem) Georgia, serif; }
+.tapestry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: clamp(.8rem, 2vw, 2rem); margin-top: 4vh; }
+.tapestry-grid figure { margin: 0; padding: .65rem .65rem 1rem; background: #fffaf0; box-shadow: 0 12px 30px #4b382326; animation: tapestry-arrive .7s both; animation-delay: var(--delay); }
+.tapestry-grid img { display: block; width: 100%; aspect-ratio: 4/3; object-fit: contain; }
+.tapestry-grid figcaption { margin-top: .65rem; font: 600 .8rem ui-sans-serif, system-ui; }
+.tapestry-messages { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:2rem; }
+.tapestry-messages blockquote { margin:0;padding:1.1rem 1.2rem;border:1px solid #bcae98;border-radius:1rem;background:#fffaf0;color:#40382e;animation:tapestry-arrive .8s both;animation-delay:var(--delay); }
+.tapestry-messages p { margin:0;font:1.15rem/1.45 Georgia,serif; }
+.tapestry-messages cite { display:block;margin-top:.75rem;color:#756755;font-style:normal;font-size:.85rem; }
+.wc-art-credit { padding: .45rem .8rem; border-radius: 999px; color: #29251f; background: #fffaf0e8; font: 600 .72rem ui-sans-serif, system-ui; }
+@keyframes tapestry-arrive { from { opacity: 0; translate: 0 20px; rotate: -1deg; } }
 
 [data-wakecanvas-experience="living-gallery"] canvas {
   display: block;

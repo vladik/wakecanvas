@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title">
+  <title id="title">Community Tapestry preview</title>
+  <rect width="640" height="360" fill="#f0e8d8"/>
+  <g fill="none" stroke="#8f7056" stroke-width="4" opacity=".55"><path d="M85 90C220 40 245 300 390 230S520 80 590 150"/><path d="M55 275c120-110 225 40 330-75s150 40 210 70"/></g>
+  <g stroke="#fff8ea" stroke-width="7"><rect x="50" y="45" width="145" height="115" rx="12" fill="#ca7257"/><rect x="238" y="78" width="135" height="170" rx="12" fill="#60857a"/><rect x="420" y="42" width="165" height="125" rx="12" fill="#d2a75f"/><rect x="70" y="210" width="135" height="105" rx="12" fill="#7881ad"/><rect x="418" y="210" width="150" height="105" rx="12" fill="#ad786d"/></g>
+</svg>

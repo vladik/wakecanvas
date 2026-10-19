@@ -1,6 +1,6 @@
 # ADR-0005: Instance deletion and package uninstall
 
-- Status: accepted
+- Status: accepted and implemented for instances
 - Date: 2026-10-16
 
 ## Decision

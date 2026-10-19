@@ -8,17 +8,17 @@ defmodule WakeCanvas.ExperienceSDKTest do
 
   test "represents isolated Experience instance context" do
     instance = %WakeCanvas.ExperienceSDK.Instance{
-      id: 12,
+      id: "550e8400-e29b-41d4-a716-446655440000",
       experience_id: "org.wakecanvas.experience.living-gallery",
       experience_version: "0.1.0",
       name: "Morning Workshop",
       config: %{"moderationRequired" => true},
-      data_dir: "data/instances/12",
-      database_path: "data/instances/12/experience.sqlite"
+      data_dir: "data/instances/550e8400-e29b-41d4-a716-446655440000",
+      database_path: "data/instances/550e8400-e29b-41d4-a716-446655440000/experience.sqlite"
     }
 
     assert instance.name == "Morning Workshop"
-    assert instance.id == 12
+    assert instance.id == "550e8400-e29b-41d4-a716-446655440000"
     assert instance.experience_id == "org.wakecanvas.experience.living-gallery"
   end
 
@@ -26,7 +26,8 @@ defmodule WakeCanvas.ExperienceSDKTest do
     variant = %WakeCanvas.ExperienceSDK.DisplayVariant{
       id: "quiet-spotlight",
       label: "Quiet Spotlight",
-      description: "A calm single-artwork presentation"
+      description: "A calm single-artwork presentation",
+      entrypoint: "static/variants/quiet-spotlight.js"
     }
 
     assert variant.id == "quiet-spotlight"

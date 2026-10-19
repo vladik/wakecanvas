@@ -25,11 +25,199 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/wake_canvas"
 import topbar from "../vendor/topbar"
 
+const runtimeImport = new Function("url", "return import(url)")
+
+function supportedCapability(capability) {
+  if (capability === "webgl2") return Boolean(document.createElement("canvas").getContext("webgl2"))
+  if (capability === "webgl") {
+    const canvas = document.createElement("canvas")
+    return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"))
+  }
+  return true
+}
+
+const ExperienceRenderer = {
+  async mounted() {
+    this.disposed = false
+    this.renderer = null
+    this.pendingSnapshot = null
+    this.diagnosticClientId = globalThis.crypto?.randomUUID?.() || `display-${Date.now()}-${Math.random().toString(16).slice(2)}`
+    this.requestedVariant = this.el.dataset.displayVariant || null
+    this.activeVariant = this.requestedVariant
+    this.fallbackUsed = false
+    this.fallbackReason = null
+    this.rendererFps = null
+
+    this.handleEvent("experience:snapshot", snapshot => {
+      if (this.renderer?.update) this.renderer.update(snapshot)
+      else this.pendingSnapshot = snapshot
+    })
+
+    try {
+      const capabilities = JSON.parse(this.el.dataset.rendererCapabilities || "[]")
+      const unsupported = capabilities.filter(capability => !supportedCapability(capability))
+      const fallbackUrl = this.el.dataset.rendererFallbackUrl
+      const rendererUrl = unsupported.length > 0 && fallbackUrl ? fallbackUrl : this.el.dataset.rendererUrl
+      const module = await runtimeImport(rendererUrl)
+      if (this.disposed) return
+
+      const context = JSON.parse(this.el.dataset.rendererContext || "{}")
+      if (rendererUrl === fallbackUrl) {
+        context.requestedVariant = context.variant
+        context.variant = this.el.dataset.rendererFallbackVariant
+        context.fallbackReason = `Unsupported capabilities: ${unsupported.join(", ")}`
+        this.activeVariant = context.variant
+        this.fallbackUsed = true
+        this.fallbackReason = context.fallbackReason
+      }
+      this.renderer = await module.mount(this.el, context)
+
+      if (this.disposed) {
+        this.renderer?.destroy?.()
+        return
+      }
+
+      if (this.pendingSnapshot && this.renderer?.update) {
+        this.renderer.update(this.pendingSnapshot)
+        this.pendingSnapshot = null
+      }
+      this.attachRendererDiagnostics()
+      this.startRendererDiagnostics()
+    } catch (error) {
+      console.error("WakeCanvas renderer failed to mount", error)
+      this.rendererDiagnosticError = String(error?.message || error).slice(0, 400)
+      this.startRendererDiagnostics("error")
+      this.el.innerHTML = `<div style="display:grid;place-items:center;min-height:100vh;background:#151515;color:white;font-family:system-ui;padding:2rem;text-align:center"><div><h1>Display unavailable</h1><p>Open WakeCanvas management for diagnostics.</p></div></div>`
+    }
+  },
+
+  reportRendererDiagnostic(status, extra = {}) {
+    this.rendererDiagnosticStatus = status
+    if (extra.error !== undefined) this.rendererDiagnosticError = extra.error
+    const bounds = this.el.getBoundingClientRect()
+    this.pushEvent("renderer:diagnostic", {
+      clientId: this.diagnosticClientId,
+      status,
+      requestedVariant: this.requestedVariant,
+      activeVariant: this.activeVariant,
+      fallback: this.fallbackUsed,
+      fallbackReason: this.fallbackReason,
+      width: Math.max(0, Math.round(bounds.width || window.innerWidth || 0)),
+      height: Math.max(0, Math.round(bounds.height || window.innerHeight || 0)),
+      devicePixelRatio: Math.min(8, Math.max(0.25, Number(window.devicePixelRatio || 1))),
+      fps: this.rendererFps,
+      visible: document.visibilityState === "visible",
+      webgl2: supportedCapability("webgl2"),
+      error: status === "error" ? this.rendererDiagnosticError : null,
+      ...extra,
+    })
+  },
+
+  startRendererDiagnostics(status = "running") {
+    this.reportRendererDiagnostic(status)
+    this.diagnosticInterval = window.setInterval(
+      () => this.reportRendererDiagnostic(this.rendererDiagnosticStatus || status),
+      15_000,
+    )
+    this.fpsStartedAt = performance.now()
+    this.fpsFrames = 0
+
+    const sampleFrame = now => {
+      if (this.disposed) return
+      this.fpsFrames += 1
+      const elapsed = now - this.fpsStartedAt
+      if (elapsed >= 1_000) {
+        this.rendererFps = Math.min(240, (this.fpsFrames * 1_000) / elapsed)
+        this.fpsStartedAt = now
+        this.fpsFrames = 0
+      }
+      this.diagnosticFrame = requestAnimationFrame(sampleFrame)
+    }
+
+    this.diagnosticFrame = requestAnimationFrame(sampleFrame)
+    this.onDiagnosticVisibility = () => this.reportRendererDiagnostic("running")
+    this.onDiagnosticResize = () => this.reportRendererDiagnostic("running")
+    document.addEventListener("visibilitychange", this.onDiagnosticVisibility)
+    window.addEventListener("resize", this.onDiagnosticResize)
+  },
+
+  attachRendererDiagnostics() {
+    this.rendererCanvas = this.el.querySelector("canvas")
+    if (!this.rendererCanvas) return
+
+    this.onRendererContextLost = () => this.reportRendererDiagnostic("context_lost")
+    this.onRendererContextRestored = () => this.reportRendererDiagnostic("context_restored")
+    this.rendererCanvas.addEventListener("webglcontextlost", this.onRendererContextLost)
+    this.rendererCanvas.addEventListener("webglcontextrestored", this.onRendererContextRestored)
+  },
+
+  stopRendererDiagnostics() {
+    if (this.diagnosticInterval) window.clearInterval(this.diagnosticInterval)
+    if (this.diagnosticFrame) cancelAnimationFrame(this.diagnosticFrame)
+    document.removeEventListener("visibilitychange", this.onDiagnosticVisibility)
+    window.removeEventListener("resize", this.onDiagnosticResize)
+    this.rendererCanvas?.removeEventListener("webglcontextlost", this.onRendererContextLost)
+    this.rendererCanvas?.removeEventListener("webglcontextrestored", this.onRendererContextRestored)
+  },
+
+  destroyed() {
+    this.reportRendererDiagnostic("stopped")
+    this.disposed = true
+    this.stopRendererDiagnostics()
+    this.renderer?.destroy?.()
+    this.renderer = null
+  },
+}
+
+const ExperienceMediaInput = {
+  mounted() {
+    this.source = this.el.querySelector("[data-media-source]")
+    this.preview = this.el.querySelector("[data-media-preview]")
+    this.status = this.el.querySelector("[data-media-status]")
+    this.objectUrl = null
+    this.onChange = async event => {
+      const file = event.target.files?.[0]
+      if (!file) return
+      this.status.textContent = "Preparing image on this device…"
+      this.source.disabled = true
+      try {
+        const module = await runtimeImport(this.el.dataset.processorUrl)
+        const removeBackground = this.el.querySelector("[data-remove-background]")?.checked ?? false
+        const tolerance = Number(this.el.querySelector("[data-chroma-tolerance]")?.value || 25)
+        const prepared = await module.processImage(file, {
+          workerUrl: this.el.dataset.workerUrl,
+          maxDimension: 2048,
+          removeBackground,
+          chroma: {tolerance, dilation: 1, feather: 1, despill: true},
+        })
+        if (this.objectUrl) URL.revokeObjectURL(this.objectUrl)
+        this.objectUrl = URL.createObjectURL(prepared)
+        this.preview.src = this.objectUrl
+        this.preview.hidden = false
+        if (this.el.dataset.retainOriginal === "true") this.upload("original", [file])
+        this.upload("image", [prepared])
+        this.status.textContent = "Image ready to upload."
+      } catch (error) {
+        console.error("WakeCanvas image preparation failed", error)
+        this.status.textContent = `Could not prepare this image: ${error.message}. Please retake it or choose another image.`
+      } finally {
+        this.source.disabled = false
+      }
+    }
+    this.source.addEventListener("change", this.onChange)
+  },
+
+  destroyed() {
+    this.source?.removeEventListener("change", this.onChange)
+    if (this.objectUrl) URL.revokeObjectURL(this.objectUrl)
+  },
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, ExperienceRenderer, ExperienceMediaInput},
 })
 
 // Show progress bar on live navigation and form submits

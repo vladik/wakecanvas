@@ -1,0 +1,40 @@
+app = "replace-with-your-wakecanvas-app"
+primary_region = "yyz"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PHX_HOST = "replace-with-your-wakecanvas-app.fly.dev"
+  PHX_SCHEME = "https"
+  PHX_URL_PORT = "443"
+  PORT = "4000"
+  WAKECANVAS_DATA_ROOT = "/data"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "15s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[processes]
+  app = "/app/bin/wake_canvas start"
+
+[[mounts]]
+  source = "wakecanvas_data"
+  destination = "/data"
+  initial_size = "3gb"
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

@@ -7,14 +7,23 @@ defmodule WakeCanvas.Application do
 
   @impl true
   def start(_type, _args) do
+    _ = WakeCanvas.Experiences.InstancePaths.cleanup_staged_deletions()
+    _ = WakeCanvas.Experiences.InstancePaths.cleanup_transient_archives()
+
     children = [
       WakeCanvasWeb.Telemetry,
       WakeCanvas.Repo,
+      WakeCanvas.Access.AttemptLimiter,
       {Ecto.Migrator,
        repos: Application.fetch_env!(:wake_canvas, :ecto_repos), skip: skip_migrations?()},
+      WakeCanvas.Experiences.BundledPackageInstaller,
       {DNSCluster, query: Application.get_env(:wake_canvas, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: WakeCanvas.PubSub},
+      WakeCanvas.Diagnostics.RendererMonitor,
       WakeCanvas.Experiences.Registry,
+      {WakeCanvas.Experiences.ActiveInstanceSupervisor,
+       name: WakeCanvas.Experiences.ActiveInstanceSupervisor},
+      WakeCanvas.Experiences.ActiveInstanceManager,
       # Start a worker by calling: WakeCanvas.Worker.start_link(arg)
       # {WakeCanvas.Worker, arg},
       # Start to serve requests, typically the last entry

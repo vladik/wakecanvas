@@ -14,13 +14,54 @@ defmodule WakeCanvasWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :management do
+    plug WakeCanvasWeb.Plugs.RequireManagementAccess
+  end
+
+  # Compiled Experience assets are immutable, public presentation resources.
+  # In particular, JavaScript must not pass through `protect_from_forgery`: Plug
+  # intentionally rejects executable GET responses from that pipeline.
+  pipeline :experience_assets do
+    plug :put_secure_browser_headers
+  end
+
+  scope "/access", WakeCanvasWeb do
+    pipe_through :browser
+
+    get "/manage", AccessController, :management_form
+    post "/manage", AccessController, :management_login
+    delete "/manage", AccessController, :management_logout
+    get "/instances/:instance_id", AccessController, :participant_form
+    post "/instances/:instance_id", AccessController, :participant_login
+  end
+
+  scope "/", WakeCanvasWeb do
+    pipe_through [:browser, :management]
+
+    live "/manage", ManageLive
+    get "/manage/instances/:id/export", InstanceArchiveController, :export
+    get "/manage/qr", QrController, :show
+  end
+
+  scope "/", WakeCanvasWeb do
+    pipe_through :experience_assets
+
+    get "/experience-assets/:experience_id/*path", ExperienceAssetController, :show
+  end
+
+  scope "/", WakeCanvasWeb do
+    pipe_through :api
+
+    get "/health", HealthController, :show
+  end
+
   scope "/", WakeCanvasWeb do
     pipe_through :browser
 
     get "/", PageController, :home
-    live "/manage", ManageLive
     get "/display", SurfaceController, :active_display
     get "/media/instances/:instance_id/:filename", MediaController, :show
+    get "/i/:instance_id/display/:variant_id", SurfaceController, :show_variant
     get "/i/:instance_id/:surface", SurfaceController, :show
   end
 

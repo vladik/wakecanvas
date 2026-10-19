@@ -1,9 +1,11 @@
 defmodule WakeCanvas.Experiences.InstancePaths do
-  def data_dir(instance_id) when is_integer(instance_id) do
+  def data_dir(instance_id) when is_binary(instance_id) do
+    instance_id = canonical_uuid!(instance_id)
+
     :wake_canvas
     |> Application.fetch_env!(:data_root)
     |> Path.join("instances")
-    |> Path.join(Integer.to_string(instance_id))
+    |> Path.join(instance_id)
     |> Path.expand()
   end
 
@@ -41,6 +43,40 @@ defmodule WakeCanvas.Experiences.InstancePaths do
     case File.rm_rf(staged) do
       {:ok, _paths} -> :ok
       {:error, reason, _path} -> {:error, reason}
+    end
+  end
+
+  def cleanup_staged_deletions do
+    deletion_root = Path.join(Application.fetch_env!(:wake_canvas, :data_root), "deleting")
+
+    case File.ls(deletion_root) do
+      {:ok, entries} ->
+        Enum.each(entries, fn entry -> File.rm_rf(Path.join(deletion_root, entry)) end)
+        :ok
+
+      {:error, :enoent} ->
+        :ok
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def cleanup_transient_archives do
+    Enum.reduce_while(["importing", "exports"], :ok, fn directory, :ok ->
+      root = Path.join(Application.fetch_env!(:wake_canvas, :data_root), directory)
+
+      case File.rm_rf(root) do
+        {:ok, _paths} -> {:cont, :ok}
+        {:error, reason, _path} -> {:halt, {:error, reason}}
+      end
+    end)
+  end
+
+  defp canonical_uuid!(instance_id) do
+    case Ecto.UUID.cast(instance_id) do
+      {:ok, uuid} -> uuid
+      :error -> raise ArgumentError, "invalid Experience instance UUID"
     end
   end
 end

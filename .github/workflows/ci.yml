@@ -28,11 +28,88 @@ jobs:
         with:
           otp-version: "29.1.1"
           elixir-version: "1.20.4"
+      - uses: actions/setup-node@v4
+        if: matrix.project == 'experiences/living_gallery'
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: experiences/living_gallery/package-lock.json
       - run: mix deps.get
         working-directory: ${{ matrix.project }}
+      - run: npm ci --ignore-scripts
+        if: matrix.project == 'experiences/living_gallery'
+        working-directory: experiences/living_gallery
+      - run: mix assets.build
+        if: matrix.project == 'experiences/living_gallery'
+        working-directory: experiences/living_gallery
       - run: mix format --check-formatted
         working-directory: ${{ matrix.project }}
       - run: mix compile --warnings-as-errors
         working-directory: ${{ matrix.project }}
       - run: mix test
         working-directory: ${{ matrix.project }}
+
+  media:
+    name: browser media fixtures
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm test
+        working-directory: packages/media
+
+  releases:
+    name: release / ${{ matrix.target }}
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            runner: windows-latest
+            artifact: dist/wakecanvas-*-windows-x64.zip
+          - target: linux-x64
+            runner: ubuntu-24.04
+            artifact: dist/wakecanvas-*-linux-x64.tar.gz
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+            artifact: dist/wakecanvas-*-linux-arm64.tar.gz
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "29.1.1"
+          elixir-version: "1.20.4"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: experiences/living_gallery/package-lock.json
+      - name: Build and smoke-test Windows release
+        if: matrix.target == 'windows-x64'
+        shell: pwsh
+        run: |
+          .\scripts\build-windows-release.ps1 -Force
+          $archive = Get-ChildItem -Path .\dist -Filter "wakecanvas-*-windows-x64.zip" |
+            Select-Object -First 1
+          if (-not $archive) { throw "Windows release archive was not produced" }
+          .\scripts\smoke-windows-release.ps1 -Archive $archive.FullName
+      - name: Build and smoke-test Linux release
+        if: startsWith(matrix.target, 'linux-')
+        shell: bash
+        run: |
+          sh ./scripts/build-linux-release.sh --force
+          archives=(./${{ matrix.artifact }})
+          test -f "${archives[0]}"
+          sh ./scripts/smoke-linux-release.sh --archive "${archives[0]}"
+      - name: Upload smoke-tested release
+        uses: actions/upload-artifact@v4
+        with:
+          name: wakecanvas-${{ matrix.target }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
