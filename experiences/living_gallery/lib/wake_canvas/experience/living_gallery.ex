@@ -67,8 +67,9 @@ defmodule WakeCanvas.Experience.LivingGallery do
       display_variants: [
         %DisplayVariant{
           id: "living-collage",
-          label: "Living Collage",
-          description: "Artwork is featured within a drifting collage of workshop moments.",
+          label: "Living Film Collage",
+          description:
+            "Workshop memories flow through film ribbons while colourful artwork animates the foreground.",
           entrypoint: "static/variants/drifting-collage.js",
           thumbnail: "static/previews/living-collage.svg",
           capabilities: [:webgl],
@@ -76,16 +77,17 @@ defmodule WakeCanvas.Experience.LivingGallery do
         },
         %DisplayVariant{
           id: "quiet-spotlight",
-          label: "Quiet Spotlight",
+          label: "Living Light",
           description:
-            "One artwork takes centre stage while workshop moments form a calm backdrop.",
+            "Artwork is revealed through prismatic light while workshop memories dissolve behind it.",
           entrypoint: "static/variants/quiet-spotlight.js",
           thumbnail: "static/previews/quiet-spotlight.svg"
         },
         %DisplayVariant{
           id: "gallery-orbit",
-          label: "Gallery Orbit",
-          description: "Artwork travels through a calm three-dimensional gallery.",
+          label: "Living Spiral",
+          description:
+            "Artwork comes into the light while workshop memories travel through a cinematic spiral.",
           entrypoint: "static/variants/gallery-orbit.js",
           thumbnail: "static/previews/gallery-orbit.svg",
           capabilities: [:webgl2],
@@ -103,9 +105,20 @@ defmodule WakeCanvas.Experience.LivingGallery do
         %DisplayVariant{
           id: "community-tapestry",
           label: "Community Tapestry",
-          description: "An accessible SVG tapestry for low-power displays.",
+          description:
+            "Artwork, memories, and messages are stitched into an accessible community composition.",
           entrypoint: "static/variants/community-tapestry.js",
           thumbnail: "static/previews/community-tapestry.svg"
+        },
+        %DisplayVariant{
+          id: "gravity-playground",
+          label: "Living Balance",
+          description:
+            "An endless artwork rain changes suspended memory platforms and takes turns in a central spotlight.",
+          entrypoint: "static/variants/gravity-playground.js",
+          thumbnail: "static/previews/gravity-playground.svg",
+          capabilities: [:webgl],
+          fallback: "community-tapestry"
         }
       ],
       config_schema: %{
@@ -121,7 +134,8 @@ defmodule WakeCanvas.Experience.LivingGallery do
             "quiet-spotlight",
             "gallery-orbit",
             "growing-canvas",
-            "community-tapestry"
+            "community-tapestry",
+            "gravity-playground"
           ]
         }
       }

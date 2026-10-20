@@ -16,15 +16,16 @@
     "moments_auto_publish": {"type": "boolean", "default": false},
     "messages_auto_publish": {"type": "boolean", "default": false},
     "retain_originals": {"type": "boolean", "default": true},
-    "display_variant": {"type": "enum", "default": "living-collage", "values": ["living-collage", "quiet-spotlight", "gallery-orbit", "growing-canvas", "community-tapestry"]}
+    "display_variant": {"type": "enum", "default": "living-collage", "values": ["living-collage", "quiet-spotlight", "gallery-orbit", "growing-canvas", "community-tapestry", "gravity-playground"]}
   },
   "defaultDisplayVariant": "living-collage",
   "displayVariants": [
-    {"id": "living-collage", "label": "Living Collage", "description": "Artwork within a drifting collage of workshop moments.", "entrypoint": "static/variants/drifting-collage.js", "thumbnail": "static/previews/living-collage.svg", "capabilities": ["webgl"], "fallback": "community-tapestry"},
-    {"id": "quiet-spotlight", "label": "Quiet Spotlight", "description": "One artwork takes centre stage against a calm backdrop.", "entrypoint": "static/variants/quiet-spotlight.js", "thumbnail": "static/previews/quiet-spotlight.svg"},
+    {"id": "living-collage", "label": "Living Film Collage", "description": "Workshop memories flow through film ribbons while colourful artwork animates the foreground.", "entrypoint": "static/variants/drifting-collage.js", "thumbnail": "static/previews/living-collage.svg", "capabilities": ["webgl"], "fallback": "community-tapestry"},
+    {"id": "quiet-spotlight", "label": "Living Light", "description": "Artwork is revealed through prismatic light while workshop memories dissolve behind it.", "entrypoint": "static/variants/quiet-spotlight.js", "thumbnail": "static/previews/quiet-spotlight.svg"},
     {"id": "gallery-orbit", "label": "Gallery Orbit", "description": "Artwork travels through a calm three-dimensional gallery.", "entrypoint": "static/variants/gallery-orbit.js", "thumbnail": "static/previews/gallery-orbit.svg", "capabilities": ["webgl2"], "fallback": "community-tapestry"},
-    {"id": "growing-canvas", "label": "Growing Canvas", "description": "Each contribution becomes a seed in a generative garden.", "entrypoint": "static/variants/growing-canvas.js", "thumbnail": "static/previews/growing-canvas.svg", "capabilities": ["webgl"], "fallback": "community-tapestry"},
-    {"id": "community-tapestry", "label": "Community Tapestry", "description": "An accessible low-power community composition.", "entrypoint": "static/variants/community-tapestry.js", "thumbnail": "static/previews/community-tapestry.svg"}
+    {"id": "growing-canvas", "label": "Growing Canvas", "description": "Artwork grows into a generative garden shaped by workshop memories and sound.", "entrypoint": "static/variants/growing-canvas.js", "thumbnail": "static/previews/growing-canvas.svg", "capabilities": ["webgl"], "fallback": "community-tapestry"},
+    {"id": "community-tapestry", "label": "Community Tapestry", "description": "Artwork, memories, and messages are stitched into an accessible community composition.", "entrypoint": "static/variants/community-tapestry.js", "thumbnail": "static/previews/community-tapestry.svg"},
+    {"id": "gravity-playground", "label": "Living Balance", "description": "An endless artwork rain changes suspended memory platforms and takes turns in a central spotlight.", "entrypoint": "static/variants/gravity-playground.js", "thumbnail": "static/previews/gravity-playground.svg", "capabilities": ["webgl"], "fallback": "community-tapestry"}
   ],
   "surfaces": [
     {"id": "display", "path": "display", "module": "WakeCanvas.Experience.LivingGallery.RendererDisplayLive", "role": "display"},

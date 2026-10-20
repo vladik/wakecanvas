@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import {removeConnectedBackground} from "../src/chroma-key.ts"
+import {hasExistingTransparency, removeConnectedBackground} from "../src/chroma-key.ts"
 
 type Pixel = [number, number, number, number?]
 
@@ -98,4 +98,17 @@ test("rejects decoded images above the allocation limit before examining pixels"
     () => removeConnectedBackground(new Uint8ClampedArray(), 4_001, 4_000),
     /16 megapixel limit/
   )
+})
+
+test("detects an existing transparent cutout connected to the image border", () => {
+  const input = solid(20, 20, [180, 70, 35, 0], [180, 70, 35], [
+    [9, 9], [10, 9], [9, 10], [10, 10],
+  ])
+  assert.equal(hasExistingTransparency(input.data, input.width, input.height), true)
+})
+
+test("does not treat a few isolated transparent pixels as a prepared cutout", () => {
+  const input = solid(20, 20, [25, 210, 48], [210, 48, 42], center)
+  input.data[3] = 0
+  assert.equal(hasExistingTransparency(input.data, input.width, input.height), false)
 })

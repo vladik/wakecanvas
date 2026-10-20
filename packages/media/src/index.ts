@@ -1,6 +1,7 @@
 import type {ChromaOptions} from "./chroma-key"
 export type ProcessOptions = {workerUrl: string; maxDimension?: number; removeBackground?: boolean; chroma?: ChromaOptions}
-export function processImage(file: File, options: ProcessOptions): Promise<File> {
+export type PreparedFile = File & {wakeCanvasMedia?: {backgroundRemoval?: "applied" | "disabled" | "preserved-existing-transparency"}}
+export function processImage(file: File, options: ProcessOptions): Promise<PreparedFile> {
   return new Promise(async (resolve, reject) => {
     const worker = new Worker(options.workerUrl, {type: "module"}), id = crypto.randomUUID()
     worker.onmessage = event => {
@@ -8,7 +9,9 @@ export function processImage(file: File, options: ProcessOptions): Promise<File>
       worker.terminate()
       if (!event.data.ok) return reject(new Error(event.data.error))
       const extension = options.removeBackground ? "png" : "webp"
-      resolve(new File([event.data.blob], file.name.replace(/\.[^.]+$/, "") + `-prepared.${extension}`, {type: event.data.blob.type}))
+      const prepared = new File([event.data.blob], file.name.replace(/\.[^.]+$/, "") + `-prepared.${extension}`, {type: event.data.blob.type}) as PreparedFile
+      Object.defineProperty(prepared, "wakeCanvasMedia", {value: event.data.media, enumerable: false})
+      resolve(prepared)
     }
     worker.onerror = event => { worker.terminate(); reject(new Error(event.message)) }
     try {

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title">
+  <title id="title">Gravity Playground preview</title>
+  <defs>
+    <radialGradient id="bg" cx="35%" cy="30%" r="85%"><stop stop-color="#542744"/><stop offset="1" stop-color="#15112a"/></radialGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-opacity=".4"/></filter>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <g opacity=".42" transform="rotate(-5 150 250)"><rect x="35" y="220" width="235" height="90" rx="12" fill="#e6d4bb"/><rect x="45" y="230" width="215" height="70" rx="8" fill="#537b82"/></g>
+  <g opacity=".38" transform="rotate(6 500 270)"><rect x="390" y="230" width="220" height="80" rx="12" fill="#e6d4bb"/><rect x="400" y="240" width="200" height="60" rx="8" fill="#a25d69"/></g>
+  <g filter="url(#shadow)" stroke="#fff1d8" stroke-width="6">
+    <path d="M245 78l50-35 54 39-17 62-72 3z" fill="#e5a951" transform="rotate(8 295 96)"/>
+    <path d="M365 124l58-20 42 48-33 55-67-19z" fill="#4ea3a9" transform="rotate(-9 414 156)"/>
+    <path d="M176 138l46-19 37 37-21 53-58-6z" fill="#c85e73" transform="rotate(-14 216 166)"/>
+    <path d="M292 200l58-24 44 48-26 61-72-9z" fill="#8170c5" transform="rotate(5 343 230)"/>
+  </g>
+  <ellipse cx="320" cy="330" rx="250" ry="20" fill="#efbd73" opacity=".15"/>
+</svg>

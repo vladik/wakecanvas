@@ -35,8 +35,8 @@ viewport, FPS, and WebGL failures. A privacy-limited `/health` JSON endpoint is
 available for supervision.
 
 Living Gallery provides artwork, Workshop Moments, and testimonial intake,
-independent publishing policies, moderation, live PubSub updates, and five lazy-loaded display variants
-using PixiJS, Three.js, p5.js, and HTML/SVG. Artwork intake can resize and remove a
+independent publishing policies, moderation, live PubSub updates, and six lazy-loaded display variants
+using PixiJS, Three.js, p5.js, Matter.js, and HTML/SVG. Artwork intake can resize and remove a
 controlled background in a browser worker before upload. Growing Canvas can react
 to microphone level after an explicit local permission gesture.
 

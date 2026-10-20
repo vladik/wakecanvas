@@ -353,20 +353,28 @@ Turn the four early renderer proofs into deliberate Living Gallery presentations
 over the real content and event stream. These validate the SDK and provide the
 artistic demonstration suite; they are not four separate Experiences.
 
-### 8.1 Drifting Collage — PixiJS
+### 8.1 Living Film Collage (`living-collage`) — PixiJS + GSAP
 
-- Layer workshop moments as a slow ambient collage.
-- Present background-removed artwork as larger foreground sprites.
-- Add bounded parallax, arrival/spotlight transitions, colour treatment, blur,
-  displacement/noise, and texture limits.
+- Move workshop moments through multiple framed film ribbons with different
+  directions, speeds, depth, and tilt.
+- Present background-removed artwork as colourful, free-floating foreground objects.
+- Use a photographic developing effect for new moments and an elastic entrance for
+  new artwork, followed by slow periodic whole-collage recomposition.
+- Move each artwork into a large central focus for a ten-second feature cycle with
+  optional creator attribution.
+- Keep continuous motion in the PixiJS ticker and use GSAP for meaningful transitions.
+- Add bounded parallax, colour treatment, blur, shadows, masks, and texture limits.
 - This is the practical default and Raspberry Pi performance baseline.
 
-### 8.2 Gallery Orbit — Three.js
+### 8.2 Living Spiral (`gallery-orbit`) — Three.js + GSAP
 
-- Map artwork to textured cards or shallow objects in a 3D scene.
-- Use moment photographs as distant panels or architectural surfaces.
-- Add gentle camera movement, lighting, depth, and a clear arrival path for new
-  submissions.
+- Place framed, muted workshop moments on a broad outer memory helix.
+- Place transparent artwork on a brighter inner orbit and keep it facing the camera.
+- Use an autonomous GSAP sequence to bring artwork into a central hero position,
+  show optional attribution, and return it to the orbit without mouse or scroll input.
+- Give newly published artwork priority in the next hero sequence.
+- Add slow camera movement, fog, particles, lighting, depth fades, vignette, and
+  restrained film grain while keeping all animation teardown explicit.
 - Start with WebGL and declare a fallback when required capability is unavailable.
 
 ### 8.3 Growing Canvas — p5.js

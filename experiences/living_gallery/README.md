@@ -17,8 +17,34 @@ Implemented surfaces:
 ## Independent frontend build
 
 Living Gallery compiles and packages its own Tailwind 4 and DaisyUI 5 stylesheet
-and its own JavaScript renderers. PixiJS, Three.js, and p5.js are bundled here and
-are not platform dependencies.
+and its own JavaScript renderers. PixiJS, Three.js, GSAP, p5.js, and Matter.js are bundled
+here and are not platform dependencies. The Three.js `gallery-orbit` entry point
+is presented as **Living Spiral**: workshop photographs form its outer memory
+helix while artwork travels on a brighter inner orbit and periodically enters an
+automatic, hands-free hero sequence.
+
+The PixiJS `living-collage` entry point is presented as **Living Film Collage**.
+Workshop moments continuously develop and travel through layered film ribbons,
+while background-removed artwork floats freely above them. Every ten seconds one
+artwork moves into a large central focus with optional attribution. GSAP
+choreographs focus changes, new arrivals, and periodic whole-collage recomposition;
+the wall requires no pointer or scroll input.
+
+Both WebGL renderers reconcile live snapshots incrementally. Publishing or removing
+one item does not rebuild the scene, reset the camera, restart the film ribbons, or
+restart the feature sequence. Presentation clocks pause while their browser tab is
+hidden and resume without replaying accumulated transitions.
+
+The p5.js **Growing Canvas** turns every artwork into a plant and luminous blossom,
+with workshop moments forming atmospheric memory layers and optional microphone
+level acting as wind. The HTML/SVG **Community Tapestry** stitches artwork,
+photographs, and testimonials into one connected wall and is the low-power fallback.
+The DOM/CSS **Living Light** renderer uses prismatic echoes, moving light, aperture
+reveals, and slow memory dissolves to create a cinematic museum-style presentation.
+The PixiJS/Matter.js **Living Balance** creates an endless one-at-a-time artwork
+rain over suspended workshop-memory platforms, rotates the memories shown on those
+platforms, and spotlights each creation in turn. Optional sound gently disturbs the
+shared balance.
 
 ```powershell
 mix setup

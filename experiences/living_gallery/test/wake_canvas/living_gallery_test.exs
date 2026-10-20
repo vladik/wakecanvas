@@ -41,12 +41,19 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
     assert definition.default_display_variant == "living-collage"
     assert definition.config_schema["retain_originals"].default
 
+    assert Enum.find(definition.display_variants, &(&1.id == "living-collage")).label ==
+             "Living Film Collage"
+
+    assert Enum.find(definition.display_variants, &(&1.id == "gallery-orbit")).label ==
+             "Living Spiral"
+
     assert Enum.map(definition.display_variants, & &1.id) == [
              "living-collage",
              "quiet-spotlight",
              "gallery-orbit",
              "growing-canvas",
-             "community-tapestry"
+             "community-tapestry",
+             "gravity-playground"
            ]
   end
 

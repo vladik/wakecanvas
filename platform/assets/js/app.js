@@ -174,41 +174,68 @@ const ExperienceMediaInput = {
     this.source = this.el.querySelector("[data-media-source]")
     this.preview = this.el.querySelector("[data-media-preview]")
     this.status = this.el.querySelector("[data-media-status]")
+    this.removeBackground = this.el.querySelector("[data-remove-background]")
+    this.tolerance = this.el.querySelector("[data-chroma-tolerance]")
     this.objectUrl = null
-    this.onChange = async event => {
-      const file = event.target.files?.[0]
+    this.sourceFile = null
+    this.processingGeneration = 0
+    this.toleranceTimer = null
+    this.prepare = async () => {
+      const file = this.sourceFile
       if (!file) return
+      const generation = ++this.processingGeneration
       this.status.textContent = "Preparing image on this device…"
       this.source.disabled = true
       try {
         const module = await runtimeImport(this.el.dataset.processorUrl)
-        const removeBackground = this.el.querySelector("[data-remove-background]")?.checked ?? false
-        const tolerance = Number(this.el.querySelector("[data-chroma-tolerance]")?.value || 25)
+        const removeBackground = this.removeBackground?.checked ?? false
+        const tolerance = Number(this.tolerance?.value || 25)
         const prepared = await module.processImage(file, {
           workerUrl: this.el.dataset.workerUrl,
           maxDimension: 2048,
           removeBackground,
           chroma: {tolerance, dilation: 1, feather: 1, despill: true},
         })
+        if (generation !== this.processingGeneration) return
         if (this.objectUrl) URL.revokeObjectURL(this.objectUrl)
         this.objectUrl = URL.createObjectURL(prepared)
         this.preview.src = this.objectUrl
         this.preview.hidden = false
-        if (this.el.dataset.retainOriginal === "true") this.upload("original", [file])
         this.upload("image", [prepared])
-        this.status.textContent = "Image ready to upload."
+        this.status.textContent = prepared.wakeCanvasMedia?.backgroundRemoval === "preserved-existing-transparency"
+          ? "Image ready. Its existing transparent background was preserved."
+          : "Image ready to upload."
       } catch (error) {
+        if (generation !== this.processingGeneration) return
         console.error("WakeCanvas image preparation failed", error)
         this.status.textContent = `Could not prepare this image: ${error.message}. Please retake it or choose another image.`
       } finally {
-        this.source.disabled = false
+        if (generation === this.processingGeneration) this.source.disabled = false
       }
     }
+    this.onChange = event => {
+      const file = event.target.files?.[0]
+      if (!file) return
+      this.sourceFile = file
+      if (this.el.dataset.retainOriginal === "true") this.upload("original", [file])
+      this.prepare()
+    }
+    this.onRemoveBackgroundChange = () => this.prepare()
+    this.onToleranceInput = () => {
+      window.clearTimeout(this.toleranceTimer)
+      this.toleranceTimer = window.setTimeout(() => this.prepare(), 180)
+    }
     this.source.addEventListener("change", this.onChange)
+    this.removeBackground?.addEventListener("change", this.onRemoveBackgroundChange)
+    this.tolerance?.addEventListener("input", this.onToleranceInput)
   },
 
   destroyed() {
+    this.processingGeneration++
     this.source?.removeEventListener("change", this.onChange)
+    this.removeBackground?.removeEventListener("change", this.onRemoveBackgroundChange)
+    this.tolerance?.removeEventListener("input", this.onToleranceInput)
+    window.clearTimeout(this.toleranceTimer)
     if (this.objectUrl) URL.revokeObjectURL(this.objectUrl)
   },
 }

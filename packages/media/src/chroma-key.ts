@@ -18,11 +18,31 @@ function hsv(r: number, g: number, b: number): [number, number] {
 const hueDistance = (a: number, b: number) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d }
 function median(values: number[]) { values.sort((a, b) => a - b); return values[Math.floor(values.length / 2)] ?? 0 }
 
+export function hasExistingTransparency(data: Uint8ClampedArray, width: number, height: number) {
+  if (width < 1 || height < 1) return false
+
+  const total = width * height
+  const minimumTransparent = Math.max(16, Math.floor(total * 0.0025))
+  const borderTotal = width * 2 + Math.max(0, height - 2) * 2
+  const minimumBorder = Math.max(2, Math.floor(borderTotal * 0.02))
+  let transparent = 0
+  let transparentBorder = 0
+
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    if (data[(y * width + x) * 4 + 3] >= 250) continue
+    transparent++
+    if (x === 0 || x === width - 1 || y === 0 || y === height - 1) transparentBorder++
+  }
+
+  return transparent >= minimumTransparent && transparentBorder >= minimumBorder
+}
+
 function sampleBackground(data: Uint8ClampedArray, width: number, height: number): Background {
   const hues: number[] = [], weights: number[] = [], lights: number[] = []
   const patch = Math.max(2, Math.min(16, Math.floor(Math.min(width, height) * 0.04)))
   const sample = (x: number, y: number) => {
     const i = (y * width + x) * 4
+    if (data[i + 3] < 250) return
     const [hue, saturation] = hsv(data[i], data[i + 1], data[i + 2])
     lights.push(luminance(data[i], data[i + 1], data[i + 2]))
     if (saturation >= 0.12) { hues.push(hue); weights.push(saturation) }
@@ -31,6 +51,7 @@ function sampleBackground(data: Uint8ClampedArray, width: number, height: number
     sample(x, y); sample(width - 1 - x, y); sample(x, height - 1 - y); sample(width - 1 - x, height - 1 - y)
   }
   const light = median(lights)
+  if (lights.length === 0) return {achromatic: true, luminance: 255}
   if (hues.length < lights.length * 0.25) return {achromatic: true, luminance: light}
   let sin = 0, cos = 0, total = 0
   hues.forEach((hue, index) => { const weight = weights[index]; sin += Math.sin(hue * Math.PI / 180) * weight; cos += Math.cos(hue * Math.PI / 180) * weight; total += weight })

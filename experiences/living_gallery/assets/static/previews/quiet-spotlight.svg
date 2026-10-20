@@ -1,7 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title">
-  <title id="title">Quiet Spotlight preview</title>
-  <defs><radialGradient id="light"><stop stop-color="#8d775b"/><stop offset=".48" stop-color="#302d28"/><stop offset="1" stop-color="#101211"/></radialGradient></defs>
+  <title id="title">Living Light preview</title>
+  <defs>
+    <radialGradient id="light"><stop stop-color="#333b55"/><stop offset=".52" stop-color="#10121c"/><stop offset="1" stop-color="#05060a"/></radialGradient>
+    <linearGradient id="prism"><stop stop-color="#f3c179"/><stop offset=".5" stop-color="#68d3d0"/><stop offset="1" stop-color="#e66da6"/></linearGradient>
+  </defs>
   <rect width="640" height="360" fill="url(#light)"/>
-  <rect x="220" y="34" width="200" height="292" rx="9" fill="#f5efe2" stroke="#d9c9ad" stroke-width="7"/>
-  <path d="M250 235c24-85 113-105 143 0v53H250z" fill="#567b70"/><circle cx="320" cy="135" r="57" fill="#d7855f"/>
+  <path d="M28 352 264 0h54L97 360zm515 8L352 0h61l213 352z" fill="url(#prism)" opacity=".18"/>
+  <path d="m320 24 170 38-18 236-152 38-152-38-18-236z" fill="#e3c28f" opacity=".28" transform="translate(-22 4)"/>
+  <path d="m320 24 170 38-18 236-152 38-152-38-18-236z" fill="#62cbc9" opacity=".22" transform="translate(22 -2)"/>
+  <path d="m320 18 154 38-18 240-136 42-136-42-18-240z" fill="#d8b77e"/>
+  <path d="m320 31 140 34-17 220-123 38-123-38-17-220z" fill="#17151c"/>
+  <circle cx="320" cy="148" r="62" fill="#d8755f"/><path d="M226 281c25-91 163-105 188 0z" fill="#5a8c81"/>
 </svg>

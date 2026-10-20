@@ -1,8 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title">
-  <title id="title">Gallery Orbit preview</title>
-  <defs><linearGradient id="bg" x2="0" y2="1"><stop stop-color="#17232b"/><stop offset="1" stop-color="#080b0d"/></linearGradient></defs>
+  <title id="title">Living Spiral preview</title>
+  <defs>
+    <radialGradient id="bg"><stop stop-color="#1d1b2a"/><stop offset=".5" stop-color="#0a0b12"/><stop offset="1" stop-color="#030406"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="10"/></filter>
+  </defs>
   <rect width="640" height="360" fill="url(#bg)"/>
-  <path d="M80 280Q320 45 560 280" fill="none" stroke="#67808a" stroke-width="3" opacity=".55"/>
-  <g stroke="#f6dfbd" stroke-width="4"><path d="M70 105l135 25v145L70 300z" fill="#5e806f"/><rect x="250" y="55" width="140" height="205" fill="#c36f54"/><path d="M435 125l135-25v200l-135-25z" fill="#c7ac76"/></g>
-  <circle cx="320" cy="300" r="7" fill="#fff2cf"/>
+  <ellipse cx="320" cy="190" rx="118" ry="102" fill="#f2a557" opacity=".18" filter="url(#glow)"/>
+  <path d="M28 75C180 8 565 48 578 154S210 340 54 254" fill="none" stroke="#8c9bb2" stroke-width="2" opacity=".32"/>
+  <path d="M92 316C205 356 555 262 512 128S166 43 118 150" fill="none" stroke="#d69d68" stroke-width="2" opacity=".55"/>
+  <g fill="#73818d" stroke="#ddd0bc" stroke-width="3" opacity=".58">
+    <path d="M38 72l91-19v73l-91 9z"/><path d="M503 70l92 22v76l-92-11z"/><path d="M70 246l105 26v65L70 310z"/>
+  </g>
+  <g stroke="#ffdeb0" stroke-width="3">
+    <path d="M162 115l82-20v118l-82 10z" fill="#527a74"/><path d="M412 179l75 10v108l-75-17z" fill="#bc6d57"/>
+  </g>
+  <rect x="257" y="72" width="126" height="190" rx="4" fill="#efb46f" opacity=".18" filter="url(#glow)"/>
+  <path d="M274 87h92v157h-92z" fill="#d37a5d" stroke="#ffe0b5" stroke-width="5"/>
+  <circle cx="320" cy="318" r="3" fill="#ffe7c3"/>
 </svg>

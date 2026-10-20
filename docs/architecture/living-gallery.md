@@ -46,9 +46,12 @@ Experience-specific UI behind them.
 
 ## Display variants
 
-Living Gallery declares five presentations over the same content: PixiJS
-`living-collage`, DOM `quiet-spotlight`, Three.js `gallery-orbit`, p5.js
-`growing-canvas`, and HTML/SVG `community-tapestry`. The Settings surface shows
+Living Gallery declares six presentations over the same content: PixiJS/GSAP
+`living-collage` (presented as **Living Film Collage**), DOM/CSS `quiet-spotlight`
+(presented as **Living Light**),
+Three.js/GSAP `gallery-orbit` (presented as **Living Spiral**), p5.js
+`growing-canvas`, HTML/SVG `community-tapestry`, and PixiJS/Matter.js
+`gravity-playground`. The Settings surface shows
 every declared variant and stores one as the instance default. `/i/:uuid/display`
 uses that default after restart, while `/i/:uuid/display/:variant_id` previews any
 variant without changing saved configuration. Renderers declare capability needs;
@@ -86,9 +89,27 @@ item sets rather than repeatedly decoding original camera files.
 
 ## Visual direction
 
-The default PixiJS renderer uses a neutral background, an ambient workshop collage,
-and a foreground artwork gallery. Three.js demonstrates spatial cards, p5.js a
-generative garden, and HTML/SVG provides a low-power accessible fallback.
+The default Living Film Collage renderer sends framed workshop moments through
+independently moving film ribbons while colourful, background-removed artwork
+floats freely in the foreground. New moments visually develop into their frames;
+new artwork expands into the shared composition; and slow periodic recomposition
+keeps a long-running wall from becoming static. A ten-second feature cycle moves
+each artwork into a large central focus with optional attribution. Living Spiral uses a broad, muted
+helix for framed workshop memories and a brighter inner orbit for transparent artwork.
+GSAP automatically brings one artwork into a central hero position while Three.js
+continues the camera journey, depth treatment, atmosphere, and live scene updates;
+no mouse or scroll input is required. Growing Canvas turns artwork into luminous
+plants, uses workshop memories as atmospheric layers, and can treat microphone
+level as wind. Community Tapestry connects artwork, memories, and messages with
+animated SVG thread while remaining a low-power accessible fallback. Gravity
+Playground lets artwork fall, collide, and settle on workshop-memory platforms;
+sound can gently disturb the shared composition.
+
+Living Film Collage and Living Spiral preserve renderer state across PubSub
+snapshots. They reconcile additions, removals, and metadata changes into existing
+scene objects instead of clearing and rebuilding the scene. Their local animation
+clocks are bounded and feature timers pause in hidden browser tabs, preventing a
+background display from replaying accumulated transitions when it becomes visible.
 
 Filters and masks are deliberately limited for Raspberry Pi and mini-PC performance.
 The initial visual recipe uses colour adjustment for the ambient layer, one shared

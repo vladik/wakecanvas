@@ -12,6 +12,7 @@ config :esbuild,
       js/variants/gallery-orbit.js
       js/variants/growing-canvas.js
       js/variants/community-tapestry.js
+      js/variants/gravity-playground.js
       --bundle
       --splitting
       --format=esm

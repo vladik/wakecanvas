@@ -4,8 +4,19 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
 
   alias WakeCanvas.Experience.LivingGallery.Store
 
+  @refresh_interval 2_000
+
   @impl true
   def mount(_params, session, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(
+        session["pubsub_server"],
+        "living-gallery:#{session["instance_id"]}"
+      )
+
+      schedule_refresh()
+    end
+
     socket =
       socket
       |> assign(:page_title, "Review Submissions")
@@ -21,6 +32,14 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
       |> assign(:message_purge_candidate, nil)
 
     {:ok, load_items(socket)}
+  end
+
+  @impl true
+  def handle_info(:media_changed, socket), do: {:noreply, load_items(socket)}
+
+  def handle_info(:refresh_items, socket) do
+    schedule_refresh()
+    {:noreply, load_items(socket)}
   end
 
   @impl true
@@ -155,6 +174,8 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
       deleted_messages: Store.list_deleted_messages(socket.assigns.database_path)
     )
   end
+
+  defp schedule_refresh, do: Process.send_after(self(), :refresh_items, @refresh_interval)
 
   defp cleanup_files(socket, item) do
     remove_file(Path.join(socket.assigns.data_dir, "media"), item.filename)

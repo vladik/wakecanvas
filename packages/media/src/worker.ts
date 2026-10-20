@@ -1,4 +1,4 @@
-import {removeConnectedBackground, type ChromaOptions} from "./chroma-key"
+import {hasExistingTransparency, removeConnectedBackground, type ChromaOptions} from "./chroma-key"
 type Request = {id: string; buffer: ArrayBuffer; type: string; maxDimension: number; removeBackground: boolean; chroma: ChromaOptions}
 self.onmessage = async (event: MessageEvent<Request>) => {
   const request = event.data
@@ -11,9 +11,18 @@ self.onmessage = async (event: MessageEvent<Request>) => {
     const context = canvas.getContext("2d", {willReadFrequently: request.removeBackground})
     if (!context) throw new Error("Image processing is unavailable in this browser")
     context.drawImage(bitmap, 0, 0, width, height); bitmap.close()
-    if (request.removeBackground) { const image = context.getImageData(0, 0, width, height); removeConnectedBackground(image.data, width, height, request.chroma); context.putImageData(image, 0, 0) }
+    let backgroundRemoval = request.removeBackground ? "applied" : "disabled"
+    if (request.removeBackground) {
+      const image = context.getImageData(0, 0, width, height)
+      if (hasExistingTransparency(image.data, width, height)) {
+        backgroundRemoval = "preserved-existing-transparency"
+      } else {
+        removeConnectedBackground(image.data, width, height, request.chroma)
+        context.putImageData(image, 0, 0)
+      }
+    }
     const blob = await canvas.convertToBlob({type: request.removeBackground ? "image/png" : "image/webp", quality: 0.9})
-    ;(self as DedicatedWorkerGlobalScope).postMessage({id: request.id, ok: true, blob})
+    ;(self as DedicatedWorkerGlobalScope).postMessage({id: request.id, ok: true, blob, media: {backgroundRemoval}})
   } catch (error) {
     ;(self as DedicatedWorkerGlobalScope).postMessage({id: request.id, ok: false, error: error instanceof Error ? error.message : String(error)})
   }
