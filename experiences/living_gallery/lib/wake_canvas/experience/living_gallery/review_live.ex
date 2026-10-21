@@ -22,6 +22,7 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
       |> assign(:page_title, "Review Submissions")
       |> assign(:instance_id, session["instance_id"])
       |> assign(:instance_name, session["instance_name"])
+      |> assign(:stylesheet_url, session["experience_stylesheet_url"])
       |> assign(:database_path, session["database_path"])
       |> assign(:data_dir, session["data_dir"])
       |> assign(:media_base_url, session["media_base_url"])
@@ -202,12 +203,13 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <main style="min-height:100vh;background:#f5f2ec;color:#29251f;font-family:ui-sans-serif,system-ui;padding:clamp(1.25rem,4vw,4rem)">
-      <div style="max-width:1100px;margin:0 auto">
+    <link rel="stylesheet" href={@stylesheet_url} />
+    <main class="lg-ui lg-ui--review" style="min-height:100vh;background:#f5f2ec;color:#29251f;font-family:ui-sans-serif,system-ui;padding:clamp(1.25rem,4vw,4rem)">
+      <div class="lg-ui__container lg-ui__container--wide" style="max-width:1100px;margin:0 auto">
         <a href="/manage" style="color:#6c6255;text-decoration:none">← Manage kiosk</a>
         <h1 style="font:500 clamp(2.5rem,6vw,4.5rem)/1 Georgia,serif;margin:2rem 0 .5rem">Review Submissions</h1>
         <p style="color:#74695b">{@instance_name} · {Enum.count(@items, &(&1.status == "pending"))} awaiting review</p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1.2rem;margin-top:2rem">
+        <div class="lg-ui-review-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1.2rem;margin-top:2rem">
           <article :for={item <- @items} style="overflow:hidden;border-radius:18px;background:white;box-shadow:0 12px 35px #4b382315">
             <img src={"#{@media_base_url}/#{item.filename}"} style="display:block;width:100%;aspect-ratio:4/3;object-fit:cover" />
             <div style="padding:1rem">
@@ -223,7 +225,7 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
           </article>
         </div>
 
-        <section style="margin-top:3rem;border-top:1px solid #d8d0c4;padding-top:2rem">
+        <section class="lg-ui-review-section" style="margin-top:3rem;border-top:1px solid #d8d0c4;padding-top:2rem">
           <h2 style="font:500 2rem Georgia,serif;margin:0">Messages and testimonials</h2>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-top:1rem">
             <article :for={item <- @messages} style="padding:1.2rem;border-radius:16px;background:white;box-shadow:0 12px 35px #4b382315">

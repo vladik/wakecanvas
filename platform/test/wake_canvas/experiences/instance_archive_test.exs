@@ -51,6 +51,59 @@ defmodule WakeCanvas.Experiences.InstanceArchiveTest do
              "image bytes"
   end
 
+  test "exports a normal instance without changing its lifecycle", %{package: package} do
+    {:ok, instance} =
+      Experiences.create_instance(%{
+        name: "Live Workshop",
+        experience_id: package.id,
+        config: %{"display_variant" => "default"}
+      })
+
+    write_instance_file!(instance.id, "experience.sqlite", "snapshot database")
+    write_instance_file!(instance.id, "media/artwork.png", "snapshot image")
+
+    assert {:ok, archive} = Experiences.export_instance(instance.id)
+    assert File.exists?(archive.path)
+
+    unchanged = Experiences.get_instance!(instance.id)
+    refute unchanged.active
+    assert is_nil(unchanged.archived_at)
+    assert File.read!(InstancePaths.database_path(instance.id)) == "snapshot database"
+
+    assert File.read!(Path.join(InstancePaths.media_dir(instance.id), "artwork.png")) ==
+             "snapshot image"
+  end
+
+  test "exports a consistent SQLite snapshot without archiving", %{package: package} do
+    {:ok, instance} =
+      Experiences.create_instance(%{
+        name: "SQLite Workshop",
+        experience_id: package.id
+      })
+
+    InstancePaths.ensure!(instance.id)
+    database = InstancePaths.database_path(instance.id)
+    {:ok, connection} = Exqlite.Sqlite3.open(database)
+    :ok = Exqlite.Sqlite3.execute(connection, "PRAGMA journal_mode=WAL")
+    :ok = Exqlite.Sqlite3.execute(connection, "CREATE TABLE contributions (body TEXT)")
+    :ok = Exqlite.Sqlite3.execute(connection, "INSERT INTO contributions VALUES ('hello')")
+    :ok = Exqlite.Sqlite3.close(connection)
+
+    assert {:ok, archive} = Experiences.export_instance(instance.id)
+    assert {:ok, copy} = Experiences.import_instance(archive.path, :clone)
+
+    {:ok, snapshot} =
+      Exqlite.Sqlite3.open(InstancePaths.database_path(copy.id), mode: :readonly)
+
+    {:ok, statement} =
+      Exqlite.Sqlite3.prepare(snapshot, "SELECT body FROM contributions")
+
+    assert {:row, ["hello"]} = Exqlite.Sqlite3.step(snapshot, statement)
+    :ok = Exqlite.Sqlite3.release(snapshot, statement)
+    :ok = Exqlite.Sqlite3.close(snapshot)
+    assert is_nil(Experiences.get_instance!(instance.id).archived_at)
+  end
+
   test "a collision can create an independent copy", %{package: package} do
     instance = archived_instance!(package, "Morning Workshop", "morning-workshop")
     write_instance_file!(instance.id, "experience.sqlite", "source")
@@ -64,6 +117,23 @@ defmodule WakeCanvas.Experiences.InstanceArchiveTest do
     assert is_nil(copy.slug)
     assert copy.archived_at
     assert File.read!(InstancePaths.database_path(copy.id)) == "source"
+  end
+
+  test "a normal management import is immediately available but remains stopped", %{
+    package: package
+  } do
+    instance = archived_instance!(package, "Ready Workshop", "ready-workshop")
+    write_instance_file!(instance.id, "experience.sqlite", "ready")
+    assert {:ok, archive} = Experiences.export_instance(instance.id)
+    assert {:ok, _} = Experiences.purge_instance(instance.id, instance.name)
+
+    assert {:ok, imported} =
+             Experiences.import_instance(archive.path, :preserve, "", :available)
+
+    refute imported.active
+    assert is_nil(imported.archived_at)
+    assert Experiences.get_instance!(imported.id).id == imported.id
+    refute Enum.any?(Experiences.list_archived_instances(), &(&1.id == imported.id))
   end
 
   test "replacement requires an archived instance and exact name", %{package: package} do

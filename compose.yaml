@@ -5,6 +5,7 @@ services:
       - "4000:4000"
     environment:
       PHX_HOST: ${PHX_HOST:-localhost}
+      WAKECANVAS_PROFILE: hosted
       WAKECANVAS_MANAGEMENT_CODE: ${WAKECANVAS_MANAGEMENT_CODE:?set a six-digit management code}
     volumes:
       - wakecanvas_data:/data

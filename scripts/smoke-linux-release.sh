@@ -38,11 +38,28 @@ INSTALL_ROOT="$TEST_ROOT/WakeCanvas"
 LOG_PATH="$TEST_ROOT/wakecanvas.log"
 
 stop_server() {
+  if [ -x "$INSTALL_ROOT/stop-wakecanvas.sh" ]; then
+    WAKECANVAS_DATA_ROOT="$INSTALL_ROOT/data" PORT="$PORT" \
+      "$INSTALL_ROOT/stop-wakecanvas.sh" >/dev/null 2>&1 || true
+  fi
   if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
     kill -TERM "$SERVER_PID" 2>/dev/null || true
     wait "$SERVER_PID" 2>/dev/null || true
   fi
   SERVER_PID=""
+}
+
+stop_and_wait() {
+  "$INSTALL_ROOT/stop-wakecanvas.sh"
+  SERVER_PID=""
+  attempts=0
+  while [ "$attempts" -lt 20 ]; do
+    if ! curl --silent --output /dev/null --max-time 1 "$HEALTH_URL"; then return 0; fi
+    attempts=$((attempts + 1))
+    sleep 1
+  done
+  echo "WakeCanvas remained reachable after the packaged stop command." >&2
+  exit 1
 }
 
 cleanup() {
@@ -63,7 +80,29 @@ trap cleanup EXIT
 trap shutdown INT TERM
 
 tar -C "$TEST_ROOT" -xzf "$ARCHIVE"
-"$INSTALL_ROOT/initialize-wakecanvas.sh" --management-code 123456
+
+for command in start-wakecanvas.sh stop-wakecanvas.sh start-kiosk-mode.sh open-management.sh; do
+  [ -x "$INSTALL_ROOT/$command" ] || {
+    echo "Missing public Linux command: $command" >&2
+    exit 1
+  }
+done
+
+for command in initialize-wakecanvas.sh install-autostart.sh uninstall-autostart.sh; do
+  [ ! -e "$INSTALL_ROOT/$command" ] || {
+    echo "Administrative command leaked into the release root: $command" >&2
+    exit 1
+  }
+done
+
+for command in initialize-wakecanvas.sh run-wakecanvas.sh stop-wakecanvas.sh install-autostart.sh uninstall-autostart.sh; do
+  [ -x "$INSTALL_ROOT/admin-tools/$command" ] || {
+    echo "Missing Linux admin tool: $command" >&2
+    exit 1
+  }
+done
+
+"$INSTALL_ROOT/admin-tools/initialize-wakecanvas.sh" --management-code 123456
 
 export PHX_SERVER=true
 export PORT
@@ -97,11 +136,11 @@ start_and_wait
 [ -f "$INSTALL_ROOT/data/wake_canvas.sqlite3" ] || { echo "Platform database was not created." >&2; exit 1; }
 [ -f "$INSTALL_ROOT/data/config/secret_key_base" ] || { echo "Cookie secret was not created." >&2; exit 1; }
 SECRET_BEFORE=$(cat "$INSTALL_ROOT/data/config/secret_key_base")
-stop_server
+stop_and_wait
 
 start_and_wait
 SECRET_AFTER=$(cat "$INSTALL_ROOT/data/config/secret_key_base")
 [ "$SECRET_BEFORE" = "$SECRET_AFTER" ] || { echo "Cookie secret changed after restart." >&2; exit 1; }
-stop_server
+stop_and_wait
 
 echo "Linux release smoke test passed on $(uname -m)."

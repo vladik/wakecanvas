@@ -13,9 +13,10 @@ processed/...
 <other Experience-owned instance files>
 ```
 
-The platform deliberately does not interpret `experience.sqlite` or other
-Experience-owned files. Export is permitted only while the instance is archived,
-which means its supervised runtime is stopped and its files are stable.
+The platform does not interpret the Experience database schema. Export creates a
+temporary filesystem snapshot and uses SQLite's online snapshot operation for
+`experience.sqlite`, so active, stopped, and archived instances can all be
+exported without changing their lifecycle state.
 
 `wakecanvas-instance.json` records:
 
@@ -28,7 +29,8 @@ which means its supervised runtime is stopped and its files are stable.
 - optional participant-code digest and its session-invalidating version.
 
 Active state and archive timestamps are not portable state. Every imported
-instance is inactive and archived until an operator restores it.
+instance is always inactive. A normal management import makes it available in the
+stopped state; an advanced recovery import may keep it archived until restored.
 
 `CHECKSUMS` contains lowercase SHA-256 values for the manifest and every payload
 file. It does not checksum itself. Before extraction WakeCanvas rejects absolute or

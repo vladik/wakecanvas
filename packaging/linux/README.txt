@@ -1,25 +1,31 @@
 WakeCanvas for Linux
 ====================
 
-1. Extract the complete tar.gz into a permanent writable directory.
-2. Run ./initialize-wakecanvas.sh and choose a six-digit management code.
-3. Run ./start-wakecanvas.sh.
-4. Open http://localhost:4000/manage and install an Experience package.
-5. Optionally run ./install-autostart.sh as the graphical kiosk user.
+Normal use
+----------
 
-The release includes Erlang/OTP and Elixir. It needs no production Node.js,
-database server, or internet connection. Persistent state is in ./data; back up
-that complete directory.
+1. Extract the WakeCanvas archive into a permanent folder.
+2. Run ./start-wakecanvas.sh.
+3. On the first run, choose a six-digit management code when prompted.
+4. Use ./open-management.sh to open the management view later.
+5. Use ./stop-wakecanvas.sh to stop WakeCanvas.
 
-A fullscreen display requires Chromium or Google Chrome and a graphical session.
-For unattended operation, configure the kiosk operating system to log this user
-into its desktop automatically. The systemd user service restarts WakeCanvas after
-a process failure.
+The stop command also stops the installation-owned launcher, kiosk service, and
+kiosk browser. After it finishes, the extracted WakeCanvas folder can be moved or
+deleted safely.
 
-Run on another port with:
+For a fullscreen installation, run ./start-kiosk-mode.sh. WakeCanvas will start
+the display in Chromium or Google Chrome when one is installed.
 
-    ./start-wakecanvas.sh --port 4100
+The first start creates the data directory automatically. There is no separate
+initialization step for normal users.
 
-Run the server without opening a browser with:
+Admin tools
+-----------
 
-    ./start-wakecanvas.sh --no-browser
+Service installation, management-code replacement, and advanced launcher options
+are deliberately kept in ./admin-tools so they are not confused with everyday
+commands. See ./admin-tools/README.txt before using them.
+
+WakeCanvas works without an internet connection. Other devices on the trusted
+workshop network can use the LAN address printed by kiosk mode.

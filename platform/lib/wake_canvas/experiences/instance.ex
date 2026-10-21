@@ -24,15 +24,27 @@ defmodule WakeCanvas.Experiences.Instance do
   def changeset(instance, attrs) do
     instance
     |> cast(attrs, [:name, :slug, :experience_id, :config])
+    |> validate_details()
+    |> validate_required([:experience_id])
+    |> foreign_key_constraint(:experience_id)
+  end
+
+  def details_changeset(instance, attrs) do
+    instance
+    |> cast(attrs, [:name, :slug])
+    |> validate_details()
+  end
+
+  defp validate_details(changeset) do
+    changeset
     |> update_change(:slug, &normalize_slug/1)
-    |> validate_required([:name, :experience_id])
+    |> validate_required([:name])
     |> validate_length(:name, min: 2, max: 80)
     |> validate_length(:slug, min: 2, max: 60)
     |> validate_format(:slug, ~r/^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       message: "must contain lowercase letters, numbers, and single hyphens only"
     )
     |> unique_constraint(:slug)
-    |> foreign_key_constraint(:experience_id)
   end
 
   defp normalize_slug(nil), do: nil

@@ -20,6 +20,6 @@ defmodule WakeCanvasWeb.AccessControllerTest do
     conn =
       conn |> init_test_session(%{"wakecanvas_management_access" => true}) |> get(~p"/manage")
 
-    assert html_response(conn, 200) =~ "Experience control room"
+    assert html_response(conn, 200) =~ "Kiosk management"
   end
 end

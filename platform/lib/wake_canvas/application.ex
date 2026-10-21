@@ -24,6 +24,7 @@ defmodule WakeCanvas.Application do
       {WakeCanvas.Experiences.ActiveInstanceSupervisor,
        name: WakeCanvas.Experiences.ActiveInstanceSupervisor},
       WakeCanvas.Experiences.ActiveInstanceManager,
+      WakeCanvas.Experiences.BundledInstanceInstaller,
       # Start a worker by calling: WakeCanvas.Worker.start_link(arg)
       # {WakeCanvas.Worker, arg},
       # Start to serve requests, typically the last entry

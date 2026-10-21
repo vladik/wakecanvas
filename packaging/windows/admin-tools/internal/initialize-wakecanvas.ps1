@@ -1,17 +1,32 @@
-[CmdletBinding()]
-param(
-    [ValidatePattern('^\d{6}$')]
-    [string]$ManagementCode,
-    [switch]$OpenManagement,
-    [switch]$NonInteractive,
-    [switch]$Force
-)
-
 $ErrorActionPreference = 'Stop'
-$installRoot = Split-Path -Parent $PSScriptRoot
-if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'bin\wake_canvas.bat')) {
-    $installRoot = $PSScriptRoot
+$ManagementCode = ''
+$OpenManagement = $false
+$NonInteractive = $false
+$Force = $false
+
+for ($index = 0; $index -lt $args.Count; $index++) {
+    switch ($args[$index]) {
+        '--management-code' {
+            if ($index + 1 -ge $args.Count) { throw '--management-code requires a value.' }
+            $index++
+            $ManagementCode = $args[$index]
+        }
+        '--open-management' { $OpenManagement = $true }
+        '--non-interactive' { $NonInteractive = $true }
+        '--force' { $Force = $true }
+        '--help' {
+            Write-Host 'Usage: initialize-wakecanvas.cmd [--management-code 123456 | --open-management] [--non-interactive] [--force]'
+            exit 0
+        }
+        default { throw "Unknown option: $($args[$index])" }
+    }
 }
+
+if ($ManagementCode -and $ManagementCode -notmatch '^\d{6}$') {
+    throw '--management-code must contain exactly six digits.'
+}
+
+$installRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 $dataRoot = Join-Path $installRoot 'data'
 $configRoot = Join-Path $dataRoot 'config'

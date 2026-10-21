@@ -145,6 +145,29 @@ defmodule WakeCanvas.ExperiencesTest do
     assert Experiences.get_instance(instance.slug).id == instance.id
   end
 
+  test "updates workshop-owned name and URL alias without changing its Experience", %{
+    package: package
+  } do
+    assert {:ok, instance} =
+             Experiences.create_instance(%{
+               name: "Original Workshop",
+               slug: "original-workshop",
+               experience_id: package.id,
+               config: %{"display_variant" => "default"}
+             })
+
+    assert {:ok, updated} =
+             Experiences.update_instance_details(instance, %{
+               "name" => "Renamed Workshop",
+               "slug" => "Renamed-Workshop"
+             })
+
+    assert updated.name == "Renamed Workshop"
+    assert updated.slug == "renamed-workshop"
+    assert updated.experience_id == package.id
+    assert updated.config == %{"display_variant" => "default"}
+  end
+
   test "merges Experience configuration without replacing unrelated settings", %{package: package} do
     {:ok, instance} =
       Experiences.create_instance(%{

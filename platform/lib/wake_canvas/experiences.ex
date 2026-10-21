@@ -230,6 +230,13 @@ defmodule WakeCanvas.Experiences do
 
   def get_instance!(id), do: get_instance(id) || raise(Ecto.NoResultsError, queryable: Instance)
 
+  @doc false
+  def get_instance_including_archived(id) when is_binary(id) do
+    Instance
+    |> Repo.get(id)
+    |> preload_package()
+  end
+
   def active_instance do
     Instance
     |> where([instance], instance.active and is_nil(instance.archived_at))
@@ -237,7 +244,19 @@ defmodule WakeCanvas.Experiences do
     |> preload_package()
   end
 
+  def instance_reference(%Instance{slug: slug}) when is_binary(slug) and slug != "", do: slug
+  def instance_reference(%Instance{id: id}), do: id
+
   def change_instance(instance, attrs \\ %{}), do: Instance.changeset(instance, attrs)
+
+  def change_instance_details(instance, attrs \\ %{}),
+    do: Instance.details_changeset(instance, attrs)
+
+  def update_instance_details(%Instance{} = instance, attrs) when is_map(attrs) do
+    instance
+    |> Instance.details_changeset(attrs)
+    |> Repo.update()
+  end
 
   def update_instance_config(%Instance{} = instance, patch) when is_map(patch) do
     instance
@@ -269,17 +288,24 @@ defmodule WakeCanvas.Experiences do
   end
 
   @doc """
-  Imports a portable instance archive. Imported instances are always archived and
-  inactive so an operator can inspect them before restoring or starting them.
+  Imports a portable instance archive. Imported instances are always inactive.
+  They are archived by default for backup/recovery callers, or can be made
+  immediately available in the stopped state for the normal management flow.
 
   `:preserve` retains the archive UUID, `:clone` assigns a new UUID, and
   `:replace` requires the exact name of an existing archived instance.
   """
-  def import_instance(archive_path, mode \\ :preserve, confirmation \\ "")
-      when mode in [:preserve, :clone, :replace] do
+  def import_instance(
+        archive_path,
+        mode \\ :preserve,
+        confirmation \\ "",
+        availability \\ :archived
+      )
+      when mode in [:preserve, :clone, :replace] and
+             availability in [:archived, :available] do
     with {:ok, staged} <- InstanceArchive.stage(archive_path) do
       try do
-        import_staged_instance(staged, mode, confirmation)
+        import_staged_instance(staged, mode, confirmation, availability)
       after
         _ = InstanceArchive.cleanup(staged)
       end
@@ -377,7 +403,7 @@ defmodule WakeCanvas.Experiences do
     end
   end
 
-  defp import_staged_instance(staged, mode, confirmation) do
+  defp import_staged_instance(staged, mode, confirmation, availability) do
     metadata = staged.manifest["instance"]
     source_id = metadata["id"]
 
@@ -391,13 +417,13 @@ defmodule WakeCanvas.Experiences do
         :preserve ->
           if Repo.get(Instance, source_id),
             do: {:error, :instance_exists},
-            else: import_new_instance(staged, metadata, source_id, false)
+            else: import_new_instance(staged, metadata, source_id, false, availability)
 
         :clone ->
-          import_new_instance(staged, metadata, Ecto.UUID.generate(), true)
+          import_new_instance(staged, metadata, Ecto.UUID.generate(), true, availability)
 
         :replace ->
-          replace_instance(staged, metadata, confirmation)
+          replace_instance(staged, metadata, confirmation, availability)
       end
     else
       {:error, _} = error -> error
@@ -405,8 +431,7 @@ defmodule WakeCanvas.Experiences do
     end
   end
 
-  defp import_new_instance(staged, metadata, target_id, clone?) do
-    now = DateTime.utc_now() |> DateTime.truncate(:second)
+  defp import_new_instance(staged, metadata, target_id, clone?, availability) do
     destination = InstancePaths.data_dir(target_id)
     File.mkdir_p!(Path.dirname(destination))
 
@@ -422,7 +447,7 @@ defmodule WakeCanvas.Experiences do
       |> Instance.changeset(attrs)
       |> Ecto.Changeset.change(
         active: false,
-        archived_at: now,
+        archived_at: imported_archived_at(availability),
         participant_code_digest: metadata["participantCodeDigest"],
         participant_code_version: metadata["participantCodeVersion"]
       )
@@ -441,7 +466,7 @@ defmodule WakeCanvas.Experiences do
     end
   end
 
-  defp replace_instance(staged, metadata, confirmation) do
+  defp replace_instance(staged, metadata, confirmation, availability) do
     case Repo.get(Instance, metadata["id"]) do
       nil ->
         {:error, :not_found}
@@ -453,13 +478,12 @@ defmodule WakeCanvas.Experiences do
         {:error, :confirmation_mismatch}
 
       %Instance{} = existing ->
-        replace_archived_instance(staged, metadata, existing)
+        replace_archived_instance(staged, metadata, existing, availability)
     end
   end
 
-  defp replace_archived_instance(staged, metadata, existing) do
+  defp replace_archived_instance(staged, metadata, existing, availability) do
     destination = InstancePaths.data_dir(existing.id)
-    now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     changeset =
       existing
@@ -471,7 +495,7 @@ defmodule WakeCanvas.Experiences do
       })
       |> Ecto.Changeset.change(
         active: false,
-        archived_at: now,
+        archived_at: imported_archived_at(availability),
         participant_code_digest: metadata["participantCodeDigest"],
         participant_code_version: metadata["participantCodeVersion"]
       )
@@ -500,6 +524,11 @@ defmodule WakeCanvas.Experiences do
         error
     end
   end
+
+  defp imported_archived_at(:archived),
+    do: DateTime.utc_now() |> DateTime.truncate(:second)
+
+  defp imported_archived_at(:available), do: nil
 
   defp ensure_destination_absent(path) do
     if File.exists?(path), do: {:error, :instance_storage_exists}, else: :ok

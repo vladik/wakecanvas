@@ -1,24 +1,32 @@
 WakeCanvas for Windows
 ======================
 
+Manual presentation
+-------------------
+
 1. Extract the complete ZIP into a permanent writable folder.
-2. Run Initialize-WakeCanvas.ps1 and choose a six-digit management code.
-3. Run Start-WakeCanvas.ps1.
-4. Open http://localhost:4000/manage from the kiosk or another device on the LAN.
-5. Optionally run Install-Autostart.ps1 once to start the kiosk after sign-in.
+2. Double-click "start-wakecanvas.cmd".
+3. On first start, choose the six-digit management code if the presenter did
+   not provide one.
+4. The active display opens in the normal browser.
+5. Double-click "stop-wakecanvas.cmd" when finished.
+
+Double-click "open-management.cmd" to configure the installation. A prepared
+demo ZIP imports its Experience instance, media, settings, and active variant
+automatically on first start. Starting it again does not duplicate or overwrite
+that instance.
+
+Kiosk operation
+---------------
+
+"start-kiosk-mode.cmd" opens the active display fullscreen and monitors both
+the WakeCanvas process and browser. An operator can use the clearly separated
+"admin-tools" folder to install or remove automatic startup.
 
 The release includes Erlang/OTP and Elixir. Node.js, a database server, and an
 internet connection are not required. Persistent state is stored in the data
-folder beside this file. Back up that folder. Moving the installation preserves
-its identity, settings, packages, instances, and media.
+folder beside this file. Back up that folder. Other devices can use the kiosk's
+LAN address in kiosk mode.
 
-The packages folder contains optional Experience archives. Install one through
-the management view, restart WakeCanvas when prompted, then create an instance.
-
-To stop the release manually:
-
-    .\bin\wake_canvas.bat stop
-
-If port 4000 is already occupied, start with another port:
-
-    .\Start-WakeCanvas.ps1 -Port 4100
+The commands under "admin-tools" are for operators and recovery only.
+Normal users should use the named commands in this folder.

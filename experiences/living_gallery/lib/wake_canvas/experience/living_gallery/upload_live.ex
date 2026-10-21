@@ -9,10 +9,12 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
         Map.merge(options, %{
           page_title: options.heading,
           instance_id: session["instance_id"],
+          instance_reference: session["instance_reference"] || session["instance_id"],
           instance_name: session["instance_name"],
           database_path: session["database_path"],
           data_dir: session["data_dir"],
           pubsub_server: session["pubsub_server"],
+          stylesheet_url: session["experience_stylesheet_url"],
           auto_publish: Config.auto_publish?(session["config"], options.kind),
           retain_originals: Config.retain_originals?(session["config"]),
           saved: false
@@ -80,15 +82,16 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
 
   def render(assigns) do
     ~H"""
-    <main style="min-height:100vh;background:#f3efe7;color:#29251f;font-family:ui-sans-serif,system-ui;padding:clamp(1.25rem,4vw,4rem)">
-      <div style="max-width:760px;margin:0 auto">
-        <a href={"/i/#{@instance_id}/display"} style="color:#6c6255;text-decoration:none">← Living Gallery</a>
+    <link rel="stylesheet" href={@stylesheet_url} />
+    <main class="lg-ui lg-ui--intake" style="min-height:100vh;background:#f3efe7;color:#29251f;font-family:ui-sans-serif,system-ui;padding:clamp(1.25rem,4vw,4rem)">
+      <div class="lg-ui__container" style="max-width:760px;margin:0 auto">
+        <a href={"/i/#{@instance_reference}/display"} style="color:#6c6255;text-decoration:none">← Living Gallery</a>
         <p style="margin-top:3rem;text-transform:uppercase;letter-spacing:.18em;font-size:.72rem;color:#8b5e3c">{@instance_name}</p>
         <h1 style="font:500 clamp(2.5rem,7vw,5rem)/1 Georgia,serif;margin:.5rem 0 1rem">{@heading}</h1>
         <p style="max-width:580px;color:#6c6255;font-size:1.05rem;line-height:1.6">{@description}</p>
-        <div :if={@saved && @auto_publish} style="margin-top:2rem;padding:1rem 1.2rem;border-radius:14px;background:#dff3e5;color:#235934">Published. It is now appearing on the wall.</div>
-        <div :if={@saved && !@auto_publish} style="margin-top:2rem;padding:1rem 1.2rem;border-radius:14px;background:#f8edcf;color:#694f12">Uploaded for review. It will appear after an operator publishes it.</div>
-        <form phx-change="validate" phx-submit="save" style="margin-top:2rem;display:grid;gap:1rem;padding:clamp(1.2rem,4vw,2.2rem);border-radius:24px;background:#fff;box-shadow:0 18px 55px #4b382315">
+        <div :if={@saved && @auto_publish} class="lg-ui-notice lg-ui-notice--success" style="margin-top:2rem;padding:1rem 1.2rem;border-radius:14px;background:#dff3e5;color:#235934">Published. It is now appearing on the wall.</div>
+        <div :if={@saved && !@auto_publish} class="lg-ui-notice lg-ui-notice--review" style="margin-top:2rem;padding:1rem 1.2rem;border-radius:14px;background:#f8edcf;color:#694f12">Uploaded for review. It will appear after an operator publishes it.</div>
+        <form phx-change="validate" phx-submit="save" class="lg-ui-card lg-ui-form" style="margin-top:2rem;display:grid;gap:1rem;padding:clamp(1.2rem,4vw,2.2rem);border-radius:24px;background:#fff;box-shadow:0 18px 55px #4b382315">
           <div
             id={"media-input-#{@kind}"}
             phx-hook="ExperienceMediaInput"
@@ -97,7 +100,7 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
             data-retain-original={to_string(@retain_originals)}
             style="display:grid;gap:.8rem"
           >
-            <label style="display:grid;gap:.6rem;padding:2.2rem;border:2px dashed #c8bba9;border-radius:16px;background:#faf8f3;font-weight:600;text-align:center;cursor:pointer">
+            <label class="lg-ui-dropzone" style="display:grid;gap:.6rem;padding:2.2rem;border:2px dashed #c8bba9;border-radius:16px;background:#faf8f3;font-weight:600;text-align:center;cursor:pointer">
               Choose or take a photo
               <input data-media-source type="file" accept="image/jpeg,image/png,image/webp" capture="environment" style="width:100%" />
             </label>

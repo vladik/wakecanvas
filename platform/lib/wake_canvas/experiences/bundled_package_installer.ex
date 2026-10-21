@@ -23,6 +23,7 @@ defmodule WakeCanvas.Experiences.BundledPackageInstaller do
 
   def install_from(directory) when is_binary(directory) do
     directory
+    |> Path.expand()
     |> Path.join("*.wakecanvas")
     |> Path.wildcard()
     |> Enum.sort()

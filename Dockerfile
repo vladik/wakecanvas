@@ -32,7 +32,7 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl libstdc++6 libncurses6 openssl \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 10001 wakecanvas \
-    && mkdir -p /app/packages /data \
+    && mkdir -p /app/packages /app/seeds /data \
     && chown -R wakecanvas:wakecanvas /app /data
 
 COPY --from=build --chown=wakecanvas:wakecanvas /src/platform/_build/prod/rel/wake_canvas/ /app/
@@ -46,6 +46,7 @@ ENV PHX_SERVER=true \
     LC_ALL=C.UTF-8 \
     ELIXIR_ERL_OPTIONS=+fnu \
     PORT=4000 \
+    WAKECANVAS_PROFILE=hosted \
     WAKECANVAS_BIND_IP=0.0.0.0 \
     WAKECANVAS_DATA_ROOT=/data
 

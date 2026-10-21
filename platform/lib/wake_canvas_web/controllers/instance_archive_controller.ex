@@ -15,11 +15,6 @@ defmodule WakeCanvasWeb.InstanceArchiveController do
         _ = File.rm(archive.path)
         conn
 
-      {:error, :not_archived} ->
-        conn
-        |> put_flash(:error, "Archive the instance before exporting it.")
-        |> redirect(to: ~p"/manage")
-
       {:error, :not_found} ->
         send_resp(conn, :not_found, "Instance not found")
 

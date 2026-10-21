@@ -11,7 +11,9 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
      assign(socket,
        page_title: "Living Gallery Settings",
        instance_id: session["instance_id"],
+       instance_reference: session["instance_reference"] || session["instance_id"],
        instance_name: session["instance_name"],
+       stylesheet_url: session["experience_stylesheet_url"],
        asset_base_url: session["experience_asset_base_url"],
        config_api: session["config_api"],
        config: Config.with_defaults(session["config"]),
@@ -56,32 +58,46 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <main style="min-height:100vh;background:#f3efe7;color:#29251f;font-family:ui-sans-serif,system-ui;padding:clamp(1.25rem,4vw,4rem)">
-      <div style="max-width:760px;margin:0 auto">
+    <link rel="stylesheet" href={@stylesheet_url} />
+    <main class="lg-ui lg-ui--settings" style="min-height:100vh;background:#f3efe7;color:#29251f;font-family:ui-sans-serif,system-ui;padding:clamp(1.25rem,4vw,4rem)">
+      <div class="lg-ui__container lg-ui__container--settings" style="max-width:760px;margin:0 auto">
         <a href="/manage" style="color:#6c6255;text-decoration:none">← Manage kiosk</a>
         <p style="margin-top:3rem;text-transform:uppercase;letter-spacing:.18em;font-size:.72rem;color:#8b5e3c">{@instance_name}</p>
         <h1 style="font:500 clamp(2.5rem,7vw,5rem)/1 Georgia,serif;margin:.5rem 0 1rem">Publishing settings</h1>
         <p style="max-width:620px;color:#6c6255;font-size:1.05rem;line-height:1.6">Choose whether new uploads appear immediately or wait for an operator to publish them.</p>
 
-        <div :if={@saved} style="margin-top:2rem;padding:1rem 1.2rem;border-radius:14px;background:#dff3e5;color:#235934">Settings saved.</div>
+        <div :if={@saved} class="lg-ui-notice lg-ui-notice--success" style="margin-top:2rem;padding:1rem 1.2rem;border-radius:14px;background:#dff3e5;color:#235934">Settings saved.</div>
 
-        <form phx-submit="save" style="margin-top:2rem;display:grid;gap:1rem;padding:clamp(1.2rem,4vw,2.2rem);border-radius:24px;background:#fff;box-shadow:0 18px 55px #4b382315">
+        <form phx-submit="save" class="lg-ui-card lg-ui-form" style="margin-top:2rem;display:grid;gap:1rem;padding:clamp(1.2rem,4vw,2.2rem);border-radius:24px;background:#fff;box-shadow:0 18px 55px #4b382315">
           <fieldset style="border:0;padding:0;margin:0 0 1rem">
             <legend style="font:600 1.3rem Georgia,serif;margin-bottom:.35rem">Default wall presentation</legend>
             <p style="margin:.2rem 0 1rem;color:#74695b">This variant opens automatically after the kiosk restarts.</p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem">
-              <div :for={variant <- @variants} style={["display:grid;gap:.8rem;padding:.8rem;border:2px solid;border-radius:16px", if(@selected_variant == variant.id, do: "border-color:#2d5d50;background:#f0f6f2", else: "border-color:#ddd4c7;background:white")]}>
+            <div class="lg-ui-variant-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem">
+              <div
+                :for={variant <- @variants}
+                class={[
+                  "lg-ui-variant-card",
+                  @selected_variant == variant.id && "lg-ui-variant-card--selected"
+                ]}
+                style={[
+                  "display:grid;gap:.8rem;padding:.8rem;border:2px solid;border-radius:16px",
+                  if(@selected_variant == variant.id,
+                    do: "border-color:#2d5d50;background:#f0f6f2",
+                    else: "border-color:#ddd4c7;background:white"
+                  )
+                ]}
+              >
                 <img src={"#{@asset_base_url}/#{variant.thumbnail}"} alt={"#{variant.label} preview"} style="display:block;width:100%;height:120px;border-radius:11px;object-fit:cover;background:#111210" />
                 <label style="display:flex;align-items:flex-start;gap:.7rem;cursor:pointer">
                   <input type="radio" name="settings[display_variant]" value={variant.id} checked={@selected_variant == variant.id} phx-click="select_variant" phx-value-variant={variant.id} style="margin-top:.25rem" />
                   <span><strong style="display:block">{variant.label}</strong><small style="display:block;margin-top:.25rem;color:#74695b;line-height:1.4">{variant.description}</small></span>
                 </label>
-                <a href={"/i/#{@instance_id}/display/#{variant.id}"} target="_blank" style="justify-self:start;color:#2d5d50;font-weight:600">Preview variant ↗</a>
+                <a href={"/i/#{@instance_reference}/display/#{variant.id}"} target="_blank" style="justify-self:start;color:#2d5d50;font-weight:600">Preview variant ↗</a>
               </div>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1rem">
               <small style="color:#74695b">Previewing does not change what starts after reboot.</small>
-              <a href={"/i/#{@instance_id}/display/#{@selected_variant}"} target="_blank" style="display:inline-block;border:1px solid #2d5d50;border-radius:10px;padding:.65rem 1rem;color:#2d5d50;font-weight:700;text-decoration:none">Preview selected variant ↗</a>
+              <a href={"/i/#{@instance_reference}/display/#{@selected_variant}"} target="_blank" style="display:inline-block;border:1px solid #2d5d50;border-radius:10px;padding:.65rem 1rem;color:#2d5d50;font-weight:700;text-decoration:none">Preview selected variant ↗</a>
             </div>
           </fieldset>
 

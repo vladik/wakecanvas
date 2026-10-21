@@ -71,15 +71,19 @@ deletes the catalog row, and retries leftover staged-directory cleanup at startu
 
 ## Instance export and import
 
-Only archived instances can be exported. This is the consistency boundary: the
-platform copies the Experience-owned SQLite database and files as opaque bytes only
-after its runtime has stopped. The resulting `.wakecanvas-instance` ZIP contains
-the complete instance directory, portable metadata, and SHA-256 checksums.
+Any instance can be exported without changing whether it is active, stopped, or
+archived. The platform creates a temporary filesystem snapshot and uses SQLite's
+online snapshot operation for the Experience database. The resulting
+`.wakecanvas-instance` ZIP contains the complete instance directory, portable
+metadata, and SHA-256 checksums. Export never archives, stops, or removes the
+source instance.
 
 Management imports validate paths, entry types, size limits, metadata, and every
 checksum before moving any files into the live instance namespace. The matching
 Experience package and exact exported version must already be installed. An import
-always arrives archived and inactive so the operator can inspect it before restore.
+is always inactive. The normal management flow makes it immediately available in
+the stopped state so the operator can review settings and explicitly start it.
+Advanced recovery imports may keep it archived until an operator restores it.
 
 UUID collision behavior is explicit:
 

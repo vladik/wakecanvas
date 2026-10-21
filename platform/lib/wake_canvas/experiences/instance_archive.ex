@@ -2,9 +2,9 @@ defmodule WakeCanvas.Experiences.InstanceArchive do
   @moduledoc """
   Builds and validates portable, self-contained Experience instance archives.
 
-  The platform treats the Experience-owned files as opaque bytes. It never opens
-  the instance database; requiring an archived instance gives the Experience a
-  stable point at which those bytes can be copied safely.
+  Export is a non-destructive point-in-time snapshot. Experience files are copied
+  into a temporary snapshot and SQLite databases are copied with `VACUUM INTO`,
+  so an instance does not need to be archived or removed from normal operation.
   """
 
   alias WakeCanvas.Experiences.{Instance, InstancePaths}
@@ -17,11 +17,13 @@ defmodule WakeCanvas.Experiences.InstanceArchive do
   @max_file_size 2 * 1024 * 1024 * 1024
   @max_total_size 2 * 1024 * 1024 * 1024
 
-  def export(%Instance{archived_at: nil}), do: {:error, :not_archived}
-
   def export(%Instance{} = instance) do
     source = InstancePaths.data_dir(instance.id)
     export_root = Path.join(data_root(), "exports")
+
+    snapshot =
+      Path.join(export_root, ".snapshot-#{instance.id}-#{System.unique_integer([:positive])}")
+
     File.mkdir_p!(source)
     File.mkdir_p!(export_root)
 
@@ -31,15 +33,99 @@ defmodule WakeCanvas.Experiences.InstanceArchive do
         "#{instance.id}-#{System.unique_integer([:positive])}.wakecanvas-instance"
       )
 
-    with {:ok, files} <- regular_files(source),
-         {:ok, manifest} <- manifest(instance),
-         {:ok, checksums} <- checksums(source, manifest, files),
-         {:ok, _} <- create_zip(output, source, manifest, checksums, files) do
-      {:ok, %{path: output, filename: "#{safe_filename(instance.name)}.wakecanvas-instance"}}
+    result =
+      with :ok <- snapshot_instance(source, snapshot),
+           {:ok, files} <- regular_files(snapshot),
+           {:ok, manifest} <- manifest(instance),
+           {:ok, checksums} <- checksums(snapshot, manifest, files),
+           {:ok, _} <- create_zip(output, snapshot, manifest, checksums, files) do
+        {:ok, %{path: output, filename: "#{safe_filename(instance.name)}.wakecanvas-instance"}}
+      else
+        error ->
+          _ = File.rm(output)
+          error
+      end
+
+    _ = File.rm_rf(snapshot)
+    result
+  end
+
+  defp snapshot_instance(source, snapshot) do
+    with :ok <- File.mkdir_p(snapshot),
+         {:ok, files} <- regular_files(source),
+         :ok <- copy_snapshot_files(source, snapshot, files),
+         :ok <- snapshot_database(source, snapshot),
+         {:ok, current_files} <- regular_files(source),
+         :ok <- copy_snapshot_files(source, snapshot, current_files) do
+      :ok
+    end
+  end
+
+  defp copy_snapshot_files(source, snapshot, files) do
+    files
+    |> Enum.reject(&sqlite_runtime_file?/1)
+    |> Enum.reduce_while(:ok, fn relative, :ok ->
+      destination = Path.join(snapshot, relative)
+
+      with :ok <- File.mkdir_p(Path.dirname(destination)),
+           {:ok, _bytes} <- File.copy(Path.join(source, relative), destination) do
+        {:cont, :ok}
+      else
+        {:error, reason} -> {:halt, {:error, {:snapshot_failed, relative, reason}}}
+      end
+    end)
+  end
+
+  defp sqlite_runtime_file?(relative),
+    do: relative in ["experience.sqlite", "experience.sqlite-wal", "experience.sqlite-shm"]
+
+  defp snapshot_database(source, snapshot) do
+    source_path = Path.join(source, "experience.sqlite")
+    snapshot_path = Path.join(snapshot, "experience.sqlite")
+
+    cond do
+      not File.exists?(source_path) ->
+        :ok
+
+      sqlite_database?(source_path) ->
+        vacuum_database(source_path, snapshot_path)
+
+      true ->
+        case File.copy(source_path, snapshot_path) do
+          {:ok, _bytes} -> :ok
+          {:error, reason} -> {:error, {:database_snapshot_failed, reason}}
+        end
+    end
+  end
+
+  defp sqlite_database?(path) do
+    case File.open(path, [:read, :binary], fn device -> IO.binread(device, 16) end) do
+      {:ok, "SQLite format 3\0"} -> true
+      _ -> false
+    end
+  end
+
+  defp vacuum_database(source, destination) do
+    escaped_destination = String.replace(destination, "'", "''")
+    _ = File.rm(destination)
+
+    with {:ok, connection} <- Exqlite.Sqlite3.open(source, mode: :readwrite) do
+      try do
+        with :ok <- Exqlite.Sqlite3.set_busy_timeout(connection, 10_000),
+             :ok <-
+               Exqlite.Sqlite3.execute(
+                 connection,
+                 "VACUUM INTO '#{escaped_destination}'"
+               ) do
+          :ok
+        else
+          {:error, reason} -> {:error, {:database_snapshot_failed, reason}}
+        end
+      after
+        Exqlite.Sqlite3.close(connection)
+      end
     else
-      error ->
-        _ = File.rm(output)
-        error
+      {:error, reason} -> {:error, {:database_snapshot_failed, reason}}
     end
   end
 

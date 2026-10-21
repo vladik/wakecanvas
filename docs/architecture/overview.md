@@ -41,6 +41,17 @@ time. Switching between two instances of the same package follows the same clean
 stop/start lifecycle as switching between different Experiences; this keeps
 hardware and state ownership predictable.
 
+Management separates routine operator work from installation maintenance:
+
+- **Workshops** creates, renames, configures, previews, starts, and stops instances;
+- **Import & archive** transfers complete workshops and manages recoverable archives;
+- **Experiences** installs and maintains reusable Experience packages; and
+- **System** shows diagnostics and installation health.
+
+The package name is developer-owned metadata. Operators instead edit the workshop
+instance name and optional URL alias; changing either leaves its UUID, Experience,
+content, and presentation configuration unchanged.
+
 `ActiveInstanceManager` coordinates the catalog selection with an
 `ActiveInstanceSupervisor`. An Experience may supply an instance child spec; a
 generic runtime is used otherwise. The old runtime stops before its replacement
@@ -102,10 +113,12 @@ below the instance's immutable UUID:
 
 Instance names such as “Morning Workshop” are editable labels and never identify
 records. An optional installation-local unique slug can provide a convenient route
-alias, but canonical links, storage, and exports always use the UUID. The platform
-may expose `/display` and `/intake` as convenience aliases for the active instance's
-display and primary-intake surfaces. Experience packages cannot claim arbitrary
-top-level routes.
+alias, but canonical links, storage, and exports always use the UUID. Operator-facing
+display, intake, settings, and QR links prefer the slug when one is configured and
+fall back to the UUID otherwise. The `/display` convenience route follows the same
+rule. The platform may expose `/display` and `/intake` as convenience aliases for
+the active instance's display and primary-intake surfaces. Experience packages
+cannot claim arbitrary top-level routes.
 
 ## Storage
 

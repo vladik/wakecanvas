@@ -40,6 +40,15 @@ end
 if config_env() == :prod do
   release_root = System.get_env("RELEASE_ROOT")
 
+  deployment_profile =
+    System.get_env("WAKECANVAS_PROFILE", "hosted")
+    |> String.trim()
+    |> String.downcase()
+
+  unless deployment_profile in ["manual", "kiosk", "hosted"] do
+    raise "WAKECANVAS_PROFILE must be manual, kiosk, or hosted"
+  end
+
   data_root =
     System.get_env("WAKECANVAS_DATA_ROOT") ||
       if release_root do
@@ -68,7 +77,8 @@ if config_env() == :prod do
 
   config :wake_canvas,
     data_root: data_root,
-    management_code: management_code
+    management_code: management_code,
+    deployment_profile: deployment_profile
 
   config :wake_canvas, WakeCanvas.Repo,
     database: database_path,
@@ -109,7 +119,8 @@ if config_env() == :prod do
   scheme = System.get_env("PHX_SCHEME") || "http"
   port = String.to_integer(System.get_env("PORT", "4000"))
   url_port = String.to_integer(System.get_env("PHX_URL_PORT", Integer.to_string(port)))
-  bind_address = System.get_env("WAKECANVAS_BIND_IP", "0.0.0.0")
+  default_bind_address = if deployment_profile == "manual", do: "127.0.0.1", else: "0.0.0.0"
+  bind_address = System.get_env("WAKECANVAS_BIND_IP", default_bind_address)
 
   bind_ip =
     case :inet.parse_address(String.to_charlist(bind_address)) do
@@ -125,6 +136,10 @@ if config_env() == :prod do
   config :wake_canvas, WakeCanvasWeb.Endpoint,
     url: [host: host, port: url_port, scheme: scheme],
     http: [ip: bind_ip, port: port],
+    # Local installations are reached through localhost, 127.0.0.1, or a
+    # private-LAN address assigned after the release was built. Hosted
+    # deployments retain Phoenix's strict origin check against PHX_HOST.
+    check_origin: deployment_profile == "hosted",
     secret_key_base: secret_key_base
 
   # ## SSL Support

@@ -75,6 +75,7 @@ defmodule WakeCanvasWeb.SurfaceController do
 
     %{
       "instance_id" => instance.id,
+      "instance_reference" => Experiences.instance_reference(instance),
       "instance_name" => instance.name,
       "experience_id" => instance.experience_id,
       "config" => instance.config,
@@ -121,7 +122,7 @@ defmodule WakeCanvasWeb.SurfaceController do
   def active_display(conn, _params) do
     case Experiences.active_instance() do
       nil -> redirect(conn, to: ~p"/manage")
-      instance -> redirect(conn, to: ~p"/i/#{instance.id}/display")
+      instance -> redirect(conn, to: ~p"/i/#{Experiences.instance_reference(instance)}/display")
     end
   end
 end

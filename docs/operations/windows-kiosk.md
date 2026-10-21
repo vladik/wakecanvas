@@ -1,4 +1,4 @@
-# Windows kiosk release
+# Windows manual and kiosk release
 
 WakeCanvas ships as a self-contained Windows x64 ZIP. It includes ERTS, the
 Phoenix release, database migrations, static assets, kiosk scripts, and an
@@ -23,20 +23,60 @@ release, verifies durable database/secret files, then removes the test directory
 A diagnostic HTTP 503 is accepted as a reachable endpoint because the build
 machine may legitimately report low disk space; it is not treated as a dead VM.
 
-## Install and run
+## Build a prepared artist demo
+
+Export the prepared instance from WakeCanvas, then pass that portable archive to
+the same release builder:
+
+```powershell
+.\scripts\build-windows-release.ps1 `
+  -InstanceArchive .\path\living-gallery-demo.wakecanvas-instance `
+  -ManagementCode 246810 `
+  -ArtifactSuffix artist-demo `
+  -Force
+```
+
+The resulting ZIP contains the Experience package and the complete instance,
+including media and settings. On first start, the instance is imported and made
+active. Its UUID makes this idempotent: later starts do not duplicate it or
+replace changes made by the artist. Omit `-InstanceArchive` and
+`-ManagementCode` to build an unseeded general-purpose release.
+
+## Manual presentation
 
 1. Extract the ZIP into a permanent folder writable by the kiosk user.
-2. Run `Initialize-WakeCanvas.ps1` and enter a six-digit management code.
-3. Run `Start-WakeCanvas.ps1`.
-4. Open `http://localhost:4000/manage` to install the bundled Experience package
-   and create an instance.
-5. Run `Install-Autostart.ps1` once if WakeCanvas should start at user sign-in.
+2. Double-click `start-wakecanvas.cmd`.
+3. Choose a six-digit management code if one was not included by the builder.
+4. Use `open-management.cmd` when configuration is needed.
+5. Double-click `stop-wakecanvas.cmd` when the presentation is finished.
+
+The stop command also closes the kiosk browser and cleans up only Erlang/EPMD
+helper processes associated with that exact extracted WakeCanvas folder. After it
+returns, the portable installation folder can be moved or deleted.
+
+The command interface uses the same lowercase kebab-case options as Linux. For
+example, if port 4000 is already occupied:
+
+```bat
+start-wakecanvas.cmd --port 4100
+open-management.cmd --port 4100
+```
+
+Manual mode binds to localhost and opens a normal browser. It does not require
+administrator access or a Windows installation step.
+
+## Kiosk operation
+
+Double-click `start-kiosk-mode.cmd` for fullscreen, LAN-accessible operation.
+An operator can run `admin-tools\install-autostart.cmd` once if WakeCanvas
+should start at user sign-in.
 
 The launcher waits for Phoenix before opening Edge or Chrome in fullscreen kiosk
 mode. It checks reachability every five seconds, restarts the release after three
 failed checks, and reopens a closed browser. Task Scheduler also restarts the
 launcher if the launcher itself fails. Stopping the launcher gracefully stops the
-release; `Uninstall-Autostart.ps1` removes only the scheduled task and never data.
+release; `admin-tools\uninstall-autostart.cmd` removes only the scheduled task
+and never data.
 
 ## Persistent data and configuration
 
@@ -57,19 +97,28 @@ entire data directory. Replacing application files while retaining `data/`
 preserves packages, workshop instances, media, settings, sessions, and identity.
 
 The management code is intentionally simple local-installation configuration, not
-a user-account system. `Initialize-WakeCanvas.ps1 -Force -ManagementCode 654321`
-changes it; restart the release afterward. `-OpenManagement` explicitly stores an
+a user-account system.
+`admin-tools\initialize-wakecanvas.cmd --force --management-code 654321`
+changes it; restart the release afterward. `--open-management` explicitly stores an
 empty code and leaves management open.
 
 ## Local network
 
-The release listens on all IPv4 interfaces by default. Other devices on the same
-trusted workshop network use the kiosk address, for example
+Kiosk mode listens on all IPv4 interfaces. Manual mode listens only on localhost.
+Other devices on the same trusted workshop network use the kiosk address, for example
 `http://192.168.1.25:4000`. Windows Firewall may ask for permission on first run;
 allow access only on private networks. The kiosk itself always opens through
 localhost.
 
+Local manual and kiosk profiles accept LiveView connections through `localhost`,
+`127.0.0.1`, or the kiosk's current private-LAN address. Hosted deployments keep
+strict origin validation against `PHX_HOST`.
+
 Useful overrides are:
+
+- `WAKECANVAS_PROFILE` — `manual`, `kiosk`, or `hosted`;
+- `WAKECANVAS_BUNDLED_INSTANCES` — directory containing portable seed archives;
+- `WAKECANVAS_AUTO_ACTIVATE_SEED` — activate a seed only when nothing is active;
 
 - `WAKECANVAS_DATA_ROOT` — persistent data location;
 - `WAKECANVAS_BIND_IP` — bind address, default `0.0.0.0`;

@@ -34,14 +34,15 @@ the target:
 .\scripts\smoke-windows-release.ps1 -Archive .\dist\wakecanvas-0.1.0-windows-x64.zip
 ```
 
-The ZIP is a portable installation. Its root contains initialization, launcher,
-and current-user autostart scripts. Runtime data is deliberately stored in the
-adjacent `data/` directory and is not part of a newly built archive. The bundled
-Living Gallery `.wakecanvas` file is an optional installable package; it is not
-silently installed or given instances by the release.
+The ZIP is a portable installation. Its root contains only safe user-facing
+start, stop, kiosk, and management launchers. Initialization, autostart, and
+recovery scripts are isolated under `admin-tools`. Runtime data is deliberately
+stored in the adjacent `data/` directory and is not part of a normal archive. Bundled Experience
+packages are installed on first start. Passing a portable instance archive to the
+same builder creates a prepared demo artifact that imports and activates it once.
 
-The launcher binds the Phoenix endpoint to all IPv4 interfaces so devices on the
-workshop LAN can connect, while it opens the display through localhost. Windows
+Manual mode binds to localhost; kiosk mode binds to all IPv4 interfaces so devices
+on the workshop LAN can connect. Windows
 Task Scheduler restarts the launcher after a process failure, and the launcher
 monitors both the endpoint and fullscreen browser.
 
@@ -58,4 +59,6 @@ The build script maps `x86_64` to `linux-x64` and `aarch64` to `linux-arm64` and
 refuses other hosts. It does not pretend that an ERTS/native-library bundle built
 on one architecture is portable to another. Extracted releases use a single
 systemd user service for the Phoenix VM, health supervision, and graphical browser.
+Their root contains only safe user-facing commands; initialization, systemd setup,
+and advanced operations are isolated under `admin-tools`.
 See the [Linux kiosk guide](../docs/operations/linux-kiosk.md).

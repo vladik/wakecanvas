@@ -41,6 +41,7 @@ defmodule WakeCanvasWeb.Router do
     live "/manage", ManageLive
     get "/manage/instances/:id/export", InstanceArchiveController, :export
     get "/manage/qr", QrController, :show
+    live "/manage/:section", ManageLive
   end
 
   scope "/", WakeCanvasWeb do

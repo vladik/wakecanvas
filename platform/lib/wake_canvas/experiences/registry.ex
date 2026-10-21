@@ -123,8 +123,9 @@ defmodule WakeCanvas.Experiences.Registry do
            application <- String.to_atom(app),
            load_result when load_result in [:ok, {:error, {:already_loaded, application}}] <-
              Application.load(application),
+           :ok <- load_beam_modules(ebin),
            module <- Module.concat([entry_module]),
-           {:module, ^module} <- :code.load_file(module),
+           true <- Code.ensure_loaded?(module),
            {:ok, definition} <- validate_entry_module(module, manifest) do
         {:ok, %{definition: definition, entry_module: module}}
       else
@@ -139,6 +140,32 @@ defmodule WakeCanvas.Experiences.Registry do
       {:error, reason} ->
         mark_status(package, "rejected", diagnostic(reason))
         definitions
+    end
+  end
+
+  # Releases use Erlang's embedded code-loading mode. Adding an Experience ebin
+  # directory to the path is therefore not enough: every validated BEAM must be
+  # loaded explicitly before surfaces, migrations, and runtime modules are used.
+  defp load_beam_modules(ebin) do
+    with {:ok, names} <- File.ls(ebin) do
+      names
+      |> Enum.filter(&String.ends_with?(&1, ".beam"))
+      |> Enum.sort()
+      |> Enum.reduce_while(:ok, fn name, :ok ->
+        path = Path.join(ebin, name)
+        module = name |> Path.basename(".beam") |> String.to_atom()
+
+        case File.read(path) do
+          {:ok, bytes} ->
+            case :code.load_binary(module, String.to_charlist(path), bytes) do
+              {:module, ^module} -> {:cont, :ok}
+              {:error, reason} -> {:halt, {:error, {:module_load_failed, module, reason}}}
+            end
+
+          {:error, reason} ->
+            {:halt, {:error, {:module_read_failed, module, reason}}}
+        end
+      end)
     end
   end
 

@@ -25,7 +25,6 @@ defmodule WakeCanvasWeb.InstanceArchiveControllerTest do
     {:ok, instance} =
       Experiences.create_instance(%{name: "Portable Day", experience_id: package.id})
 
-    {:ok, instance} = Experiences.archive_instance(instance.id)
     InstancePaths.ensure!(instance.id)
     File.write!(InstancePaths.database_path(instance.id), "database")
 
@@ -37,7 +36,7 @@ defmodule WakeCanvasWeb.InstanceArchiveControllerTest do
     %{instance: instance, root: root}
   end
 
-  test "management downloads an archive and removes the transient file", %{
+  test "management downloads an active-list instance without archiving it", %{
     conn: conn,
     instance: instance,
     root: root
@@ -53,6 +52,7 @@ defmodule WakeCanvasWeb.InstanceArchiveControllerTest do
     assert get_resp_header(conn, "content-disposition") |> hd() =~
              "portable-day.wakecanvas-instance"
 
+    assert is_nil(Experiences.get_instance!(instance.id).archived_at)
     assert File.ls!(Path.join(root, "exports")) == []
   end
 end

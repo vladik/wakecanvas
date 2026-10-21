@@ -61,6 +61,20 @@ defmodule WakeCanvasWeb.SurfaceControllerTest do
            |> html_response(200) =~ "Variant: default"
   end
 
+  test "the active display convenience route prefers the configured slug", %{
+    conn: conn,
+    instance: instance
+  } do
+    assert {:ok, instance} =
+             Experiences.update_instance_details(instance, %{slug: "friendly-workshop"})
+
+    assert {:ok, _active} = Experiences.activate_instance(instance.id)
+
+    assert conn
+           |> get(~p"/display")
+           |> redirected_to() == "/i/friendly-workshop/display"
+  end
+
   test "falls back safely when a saved variant no longer exists", %{
     conn: conn,
     instance: instance

@@ -14,6 +14,7 @@
 - [Hosted Docker and Fly.io deployment](operations/hosted.md)
 - [Experience authoring](development/experience-authoring.md)
 - [Implementation plan](development/implementation-plan.md)
+- [Unified deployment implementation plan](development/unified-deployment-plan.md)
 - [Architecture decisions](adr/README.md)
 
 Documents describe intended architecture unless they explicitly say a feature is

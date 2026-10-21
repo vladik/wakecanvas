@@ -2,7 +2,7 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-INSTALL_ROOT=$SCRIPT_DIR
+INSTALL_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 DATA_ROOT=${WAKECANVAS_DATA_ROOT:-"$INSTALL_ROOT/data"}
 CODE_PATH="$DATA_ROOT/config/management_code"
 MANAGEMENT_CODE=""
@@ -11,7 +11,7 @@ NON_INTERACTIVE=0
 FORCE=0
 
 usage() {
-  echo "Usage: $0 [--management-code 123456 | --open-management] [--non-interactive] [--force]"
+  echo "Usage: initialize-wakecanvas.sh [--management-code 123456 | --open-management] [--non-interactive] [--force]"
 }
 
 while [ "$#" -gt 0 ]; do

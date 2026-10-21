@@ -14,6 +14,7 @@ docker build -t wakecanvas:local .
 docker volume create wakecanvas-data
 docker run --rm --name wakecanvas \
   -p 4000:4000 \
+  -e WAKECANVAS_PROFILE=hosted \
   -e PHX_HOST=localhost \
   -e WAKECANVAS_MANAGEMENT_CODE=123456 \
   -v wakecanvas-data:/data \
@@ -28,6 +29,12 @@ media. `compose.yaml` provides the same setup and requires
 
 The production image contains the release and browser assets, but no Node.js,
 npm, Mix, or source tree. `/health` is used by the image health check.
+
+A hosted demo can use the same portable seed bootstrap as the Windows ZIP. Copy
+or mount one or more `.wakecanvas-instance` files into `/app/seeds` and set
+`WAKECANVAS_AUTO_ACTIVATE_SEED=true`. Existing UUIDs and an already-active
+instance are always preserved. The seed is application input; mutable data still
+belongs on `/data`.
 
 ## Fly.io
 

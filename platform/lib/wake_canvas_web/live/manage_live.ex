@@ -8,7 +8,7 @@ defmodule WakeCanvasWeb.ManageLive do
   alias WakeCanvas.Experiences.Registry
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     {:ok,
      socket
      |> allow_upload(:experience_package,
@@ -23,6 +23,9 @@ defmodule WakeCanvasWeb.ManageLive do
      )
      |> assign(:instance_import_mode, "preserve")
      |> assign(:instance_import_confirmation, "")
+     |> assign(:section, management_section(params["section"]))
+     |> assign(:edit_candidate, nil)
+     |> assign(:edit_form, nil)
      |> assign(:rollback_candidate, nil)
      |> assign(:uninstall_candidate, nil)
      |> assign(:uninstall_confirmation, "")
@@ -31,6 +34,11 @@ defmodule WakeCanvasWeb.ManageLive do
      |> assign(:purge_confirmation, "")
      |> assign(:diagnostics, Diagnostics.snapshot())
      |> refresh()}
+  end
+
+  @impl true
+  def handle_params(params, _uri, socket) do
+    {:noreply, assign(socket, :section, management_section(params["section"]))}
   end
 
   def handle_event("refresh_diagnostics", _params, socket) do
@@ -131,21 +139,24 @@ defmodule WakeCanvasWeb.ManageLive do
   def handle_event("import_instance", params, socket) do
     mode = Map.get(params, "mode", "preserve")
     confirmation = Map.get(params, "confirmation", "")
+    availability = if Map.get(params, "keep_archived") == "true", do: :archived, else: :available
 
     results =
       consume_uploaded_entries(socket, :instance_archive, fn %{path: path}, _entry ->
-        {:ok, Experiences.import_instance(path, import_mode(mode), confirmation)}
+        {:ok, Experiences.import_instance(path, import_mode(mode), confirmation, availability)}
       end)
 
     case results do
       [{:ok, {:ok, instance}}] ->
+        message =
+          if availability == :archived,
+            do: "#{instance.name} was imported into Archived instances.",
+            else: "#{instance.name} is ready. Review its settings and click Start when ready."
+
         {:noreply,
          socket
          |> assign(:instance_import_confirmation, "")
-         |> put_flash(
-           :info,
-           "#{instance.name} was imported as an archived instance. Review it, then restore it when ready."
-         )
+         |> put_flash(:info, message)
          |> refresh()}
 
       [{:ok, {:error, reason}}] ->
@@ -174,6 +185,48 @@ defmodule WakeCanvasWeb.ManageLive do
 
       {:error, changeset} ->
         {:noreply, assign(socket, :form, to_form(changeset, action: :insert))}
+    end
+  end
+
+  def handle_event("open_instance_details", %{"id" => id}, socket) do
+    candidate = Enum.find(socket.assigns.instances, &(&1.id == id))
+
+    {:noreply,
+     socket
+     |> assign(:edit_candidate, candidate)
+     |> assign(
+       :edit_form,
+       to_form(Experiences.change_instance_details(candidate), as: :edit_instance)
+     )}
+  end
+
+  def handle_event("cancel_instance_details", _params, socket) do
+    {:noreply, socket |> assign(:edit_candidate, nil) |> assign(:edit_form, nil)}
+  end
+
+  def handle_event("validate_instance_details", %{"edit_instance" => params}, socket) do
+    form =
+      socket.assigns.edit_candidate
+      |> Experiences.change_instance_details(params)
+      |> Map.put(:action, :validate)
+      |> to_form(as: :edit_instance)
+
+    {:noreply, assign(socket, :edit_form, form)}
+  end
+
+  def handle_event("save_instance_details", %{"edit_instance" => params}, socket) do
+    case Experiences.update_instance_details(socket.assigns.edit_candidate, params) do
+      {:ok, instance} ->
+        {:noreply,
+         socket
+         |> assign(:edit_candidate, nil)
+         |> assign(:edit_form, nil)
+         |> put_flash(:info, "#{instance.name} details were updated.")
+         |> refresh()}
+
+      {:error, changeset} ->
+        {:noreply,
+         assign(socket, :edit_form, to_form(changeset, action: :update, as: :edit_instance))}
     end
   end
 
@@ -337,9 +390,9 @@ defmodule WakeCanvasWeb.ManageLive do
         <section class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p class="text-sm font-semibold uppercase tracking-[0.24em] text-primary">WakeCanvas</p>
-            <h1 class="mt-2 text-4xl font-bold tracking-tight">Experience control room</h1>
+            <h1 class="mt-2 text-4xl font-bold tracking-tight">Kiosk management</h1>
             <p class="mt-3 max-w-2xl text-base-content/65">
-              Choose what this kiosk is running. Each instance keeps its own workshop configuration and content.
+              {management_section_description(@section)}
             </p>
           </div>
           <.link href={~p"/display"} class="btn btn-primary btn-lg">
@@ -348,7 +401,31 @@ defmodule WakeCanvasWeb.ManageLive do
           </.link>
         </section>
 
-        <section class="alert border border-base-300 bg-base-100">
+        <nav class="tabs-box tabs overflow-x-auto bg-base-200 p-1" aria-label="Management sections">
+          <.link navigate={~p"/manage"} class={management_tab_class(@section, "workshops")}>
+            Workshops
+          </.link>
+          <.link
+            navigate={~p"/manage/import"}
+            class={management_tab_class(@section, "import")}
+          >
+            Import & archive
+          </.link>
+          <.link
+            navigate={~p"/manage/experiences"}
+            class={management_tab_class(@section, "experiences")}
+          >
+            Experiences
+          </.link>
+          <.link
+            navigate={~p"/manage/system"}
+            class={management_tab_class(@section, "system")}
+          >
+            System
+          </.link>
+        </nav>
+
+        <section :if={@section == "workshops"} class="alert border border-base-300 bg-base-100">
           <div>
             <p class="font-semibold">Runtime</p>
             <p class="text-sm text-base-content/65">
@@ -361,7 +438,10 @@ defmodule WakeCanvasWeb.ManageLive do
           </div>
         </section>
 
-        <section class="card border border-base-300 bg-base-100 shadow-sm">
+        <section
+          :if={@section == "system"}
+          class="card border border-base-300 bg-base-100 shadow-sm"
+        >
           <div class="card-body">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -400,7 +480,7 @@ defmodule WakeCanvasWeb.ManageLive do
           </div>
         </section>
 
-        <section>
+        <section :if={@section == "experiences"}>
           <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 class="text-xl font-semibold">Experience packages</h2>
@@ -409,6 +489,7 @@ defmodule WakeCanvasWeb.ManageLive do
               </p>
             </div>
             <form
+              id="install-experience-form"
               phx-change="validate_package"
               phx-submit="install_package"
               class="flex items-end gap-2"
@@ -488,10 +569,15 @@ defmodule WakeCanvasWeb.ManageLive do
           </div>
         </section>
 
-        <section>
+        <section :if={@section == "workshops"}>
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-xl font-semibold">Instances</h2>
-            <span class="badge badge-neutral">{length(@instances)} configured</span>
+            <div>
+              <h2 class="text-xl font-semibold">Workshops</h2>
+              <p class="mt-1 text-sm text-base-content/60">
+                Each workshop has independent content and presentation settings.
+              </p>
+            </div>
+            <span class="badge badge-neutral">{length(@instances)} available</span>
           </div>
 
           <div class="grid gap-4 lg:grid-cols-2">
@@ -510,7 +596,7 @@ defmodule WakeCanvasWeb.ManageLive do
                       Instance #{instance.id}
                     </p>
                     <h3 class="card-title mt-1">{instance.name}</h3>
-                    <p class="text-sm text-base-content/60">{instance.package.name}</p>
+                    <p class="text-sm text-base-content/60">Experience: {instance.package.name}</p>
                     <p :if={instance.slug} class="mt-1 font-mono text-xs text-base-content/45">
                       /i/{instance.slug}
                     </p>
@@ -522,14 +608,41 @@ defmodule WakeCanvasWeb.ManageLive do
                 </div>
 
                 <div class="card-actions mt-5 justify-end">
-                  <.link href={~p"/i/#{instance.id}/artwork"} class="btn btn-ghost btn-sm">Artwork intake</.link>
-                  <.link href={~p"/i/#{instance.id}/moments"} class="btn btn-ghost btn-sm">Moments</.link>
-                  <.link href={~p"/i/#{instance.id}/messages"} class="btn btn-ghost btn-sm">Messages</.link>
-                  <.link href={~p"/i/#{instance.id}/review"} class="btn btn-ghost btn-sm">Review</.link>
-                  <.link href={~p"/i/#{instance.id}/settings"} class="btn btn-ghost btn-sm">Settings</.link>
-                  <.link href={~p"/i/#{instance.id}/display"} class="btn btn-ghost btn-sm">
+                  <button
+                    phx-click="open_instance_details"
+                    phx-value-id={instance.id}
+                    class="btn btn-ghost btn-sm"
+                  >Edit details</button>
+                  <.link
+                    href={~p"/i/#{Experiences.instance_reference(instance)}/artwork"}
+                    class="btn btn-ghost btn-sm"
+                  >Artwork intake</.link>
+                  <.link
+                    href={~p"/i/#{Experiences.instance_reference(instance)}/moments"}
+                    class="btn btn-ghost btn-sm"
+                  >Moments</.link>
+                  <.link
+                    href={~p"/i/#{Experiences.instance_reference(instance)}/messages"}
+                    class="btn btn-ghost btn-sm"
+                  >Messages</.link>
+                  <.link
+                    href={~p"/i/#{Experiences.instance_reference(instance)}/review"}
+                    class="btn btn-ghost btn-sm"
+                  >Review</.link>
+                  <.link
+                    href={~p"/i/#{Experiences.instance_reference(instance)}/settings"}
+                    class="btn btn-ghost btn-sm"
+                  >Presentation settings</.link>
+                  <.link
+                    href={~p"/i/#{Experiences.instance_reference(instance)}/display"}
+                    class="btn btn-ghost btn-sm"
+                  >
                     Preview
                   </.link>
+                  <.link
+                    href={~p"/manage/instances/#{instance.id}/export"}
+                    class="btn btn-outline btn-sm"
+                  >Export</.link>
                   <button
                     :if={!instance.active}
                     phx-click="open_archive"
@@ -582,38 +695,58 @@ defmodule WakeCanvasWeb.ManageLive do
                     else: "Set code"}</button>
                 </form>
 
-                <details class="collapse-arrow collapse mt-4 border border-base-200 bg-base-200/30">
-                  <summary class="collapse-title min-h-0 py-3 text-sm font-semibold">
-                    Participant QR codes
+                <details
+                  id={"participant-qr-#{instance.id}"}
+                  class="collapse-arrow collapse mt-4 border border-base-200 bg-base-200/30"
+                >
+                  <summary class="collapse-title min-h-0 py-3 pr-12">
+                    <span class="block text-sm font-semibold">Share with participants</span>
+                    <span class="mt-0.5 block text-xs font-normal text-base-content/60">
+                      Three QR codes for artwork, workshop photos, and visitor messages
+                    </span>
                   </summary>
-                  <div class="collapse-content grid gap-4 sm:grid-cols-2">
-                    <figure class="rounded-box bg-white p-3 text-center">
-                      <img
-                        src={~p"/manage/qr?#{[path: "/i/#{instance.id}/artwork"]}"}
-                        alt="QR code for artwork intake"
-                        class="mx-auto aspect-square w-full max-w-48"
-                      />
-                      <figcaption class="mt-2 text-sm font-semibold">Artwork intake</figcaption>
-                    </figure>
-                    <figure class="rounded-box bg-white p-3 text-center">
-                      <img
-                        src={~p"/manage/qr?#{[path: "/i/#{instance.id}/moments"]}"}
-                        alt="QR code for Workshop Moments upload"
-                        class="mx-auto aspect-square w-full max-w-48"
-                      />
-                      <figcaption class="mt-2 text-sm font-semibold">Workshop Moments</figcaption>
-                    </figure>
-                    <figure class="rounded-box bg-white p-3 text-center">
-                      <img
-                        src={~p"/manage/qr?#{[path: "/i/#{instance.id}/messages"]}"}
-                        alt="QR code for visitor messages"
-                        class="mx-auto aspect-square w-full max-w-48"
-                      />
-                      <figcaption class="mt-2 text-sm font-semibold">Messages</figcaption>
-                    </figure>
-                    <p class="text-xs text-base-content/55 sm:col-span-2">
-                      These codes use the hostname or LAN address currently open in this browser. Open Management through the kiosk's LAN address before presenting them to participants.
-                    </p>
+                  <div class="collapse-content space-y-3">
+                    <article
+                      :for={destination <- participant_qr_destinations(instance)}
+                      id={"participant-qr-#{instance.id}-#{destination.id}"}
+                      class="rounded-box border border-base-300 bg-base-100 p-4"
+                    >
+                      <div class="grid items-center gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
+                        <div class="min-w-0">
+                          <div class="mb-2 flex flex-wrap items-center gap-2">
+                            <h4 class="font-semibold">{destination.title}</h4>
+                            <span class="badge badge-outline badge-sm">{destination.audience}</span>
+                          </div>
+                          <p class="text-sm leading-relaxed text-base-content/70">
+                            {destination.description}
+                          </p>
+                          <p class="mt-3 break-all rounded bg-base-200 px-2 py-1 font-mono text-xs text-base-content/70">
+                            {destination.path}
+                          </p>
+                          <.link
+                            href={destination.path}
+                            target="_blank"
+                            rel="noopener"
+                            class="btn btn-outline btn-sm mt-3"
+                          >
+                            Open page
+                          </.link>
+                        </div>
+                        <figure class="rounded-box justify-self-center bg-white p-2 shadow-sm">
+                          <img
+                            src={~p"/manage/qr?#{[path: destination.path]}"}
+                            alt={"QR code for #{destination.title}"}
+                            class="aspect-square w-40"
+                          />
+                        </figure>
+                      </div>
+                    </article>
+
+                    <div class="alert py-3 text-xs">
+                      <span>
+                        QR codes use the address currently open in this browser. Before sharing them, open Management using this kiosk's LAN address—not localhost—so participant phones can connect.
+                      </span>
+                    </div>
                   </div>
                 </details>
               </div>
@@ -621,60 +754,86 @@ defmodule WakeCanvasWeb.ManageLive do
           </div>
         </section>
 
-        <section class="card border border-base-300 bg-base-200/40">
+        <section
+          :if={@section == "import"}
+          class="card border border-base-300 bg-base-200/40"
+        >
           <div class="card-body">
-            <h2 class="card-title">Import a workshop instance</h2>
+            <h2 class="card-title">Import workshop</h2>
             <p class="text-sm text-base-content/60">
-              Move a complete workshop, including its Experience database and media, from another WakeCanvas installation. Imports remain archived until you restore them.
+              Add an exported workshop with all of its settings and media. It will be available but stopped, so you can review it before clicking Start.
             </p>
             <form
+              id="import-workshop-form"
               phx-change="validate_instance_import"
               phx-submit="import_instance"
-              class="mt-3 grid gap-4 lg:grid-cols-[minmax(16rem,1fr)_12rem_minmax(14rem,1fr)_auto] lg:items-end"
+              class="mt-3 space-y-4"
             >
-              <label class="form-control">
-                <span class="label-text text-xs font-semibold">.wakecanvas-instance archive</span>
-                <.live_file_input
-                  upload={@uploads.instance_archive}
-                  class="file-input file-input-bordered"
-                />
-              </label>
-              <label class="form-control">
-                <span class="label-text text-xs font-semibold">UUID collision</span>
-                <select name="mode" class="select select-bordered" value={@instance_import_mode}>
-                  <option value="preserve" selected={@instance_import_mode == "preserve"}>
-                    Stop and report
-                  </option>
-                  <option value="clone" selected={@instance_import_mode == "clone"}>
-                    Create a copy
-                  </option>
-                  <option value="replace" selected={@instance_import_mode == "replace"}>
-                    Replace archived
-                  </option>
-                </select>
-              </label>
-              <label class="form-control">
-                <span class="label-text text-xs font-semibold">
-                  Existing instance name (replace only)
-                </span>
-                <input
-                  name="confirmation"
-                  value={@instance_import_confirmation}
-                  disabled={@instance_import_mode != "replace"}
-                  placeholder="Exact name confirms replacement"
-                  autocomplete="off"
-                  class="input input-bordered"
-                />
-              </label>
-              <button
-                class="btn btn-primary"
-                disabled={@uploads.instance_archive.entries == []}
-              >Import archived</button>
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <label class="form-control min-w-0 flex-1">
+                  <span class="label-text text-xs font-semibold">Workshop file</span>
+                  <.live_file_input
+                    upload={@uploads.instance_archive}
+                    class="file-input file-input-bordered w-full"
+                  />
+                </label>
+                <button
+                  class="btn btn-primary"
+                  disabled={@uploads.instance_archive.entries == []}
+                >Import workshop</button>
+              </div>
+
+              <details class="collapse-arrow collapse border border-base-300 bg-base-100">
+                <summary class="collapse-title min-h-0 py-3 text-sm font-semibold">
+                  Advanced import options
+                </summary>
+                <div class="collapse-content grid gap-4 lg:grid-cols-3 lg:items-end">
+                  <label class="form-control">
+                    <span class="label-text text-xs font-semibold">If the UUID already exists</span>
+                    <select name="mode" class="select select-bordered" value={@instance_import_mode}>
+                      <option value="preserve" selected={@instance_import_mode == "preserve"}>
+                        Stop and report
+                      </option>
+                      <option value="clone" selected={@instance_import_mode == "clone"}>
+                        Create a copy
+                      </option>
+                      <option value="replace" selected={@instance_import_mode == "replace"}>
+                        Replace archived
+                      </option>
+                    </select>
+                  </label>
+                  <label class="form-control">
+                    <span class="label-text text-xs font-semibold">
+                      Existing workshop name (replace only)
+                    </span>
+                    <input
+                      name="confirmation"
+                      value={@instance_import_confirmation}
+                      disabled={@instance_import_mode != "replace"}
+                      placeholder="Exact name confirms replacement"
+                      autocomplete="off"
+                      class="input input-bordered"
+                    />
+                  </label>
+                  <label class="label cursor-pointer justify-start gap-3 rounded-box border border-base-300 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      name="keep_archived"
+                      value="true"
+                      class="checkbox checkbox-sm"
+                    />
+                    <span class="label-text">Keep in Archived instances after import</span>
+                  </label>
+                </div>
+              </details>
             </form>
           </div>
         </section>
 
-        <section :if={@archived_instances != []} class="card border border-base-300 bg-base-200/40">
+        <section
+          :if={@section == "import" && @archived_instances != []}
+          class="card border border-base-300 bg-base-200/40"
+        >
           <div class="card-body">
             <h2 class="card-title">Archived instances</h2>
             <p class="text-sm text-base-content/60">
@@ -712,11 +871,15 @@ defmodule WakeCanvasWeb.ManageLive do
           </div>
         </section>
 
-        <section class="card border border-base-300 bg-base-200/40">
+        <section
+          :if={@section == "workshops"}
+          class="card border border-base-300 bg-base-200/40"
+        >
           <div class="card-body">
-            <h2 class="card-title">Create a workshop instance</h2>
+            <h2 class="card-title">Create workshop</h2>
             <.form
               for={@form}
+              id="create-workshop-form"
               phx-change="validate"
               phx-submit="create"
               class="mt-3 grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end"
@@ -747,6 +910,41 @@ defmodule WakeCanvasWeb.ManageLive do
           </div>
         </section>
       </div>
+
+      <dialog :if={@edit_candidate} open class="modal modal-open">
+        <div class="modal-box">
+          <h3 class="text-lg font-bold">Edit workshop details</h3>
+          <p class="py-3 text-sm text-base-content/65">
+            Rename this workshop or give it a memorable URL alias. Its UUID, Experience, content, and presentation settings will not change.
+          </p>
+          <.form
+            for={@edit_form}
+            id="edit-workshop-form"
+            phx-change="validate_instance_details"
+            phx-submit="save_instance_details"
+            class="space-y-4"
+          >
+            <.input field={@edit_form[:name]} label="Workshop name" />
+            <.input
+              field={@edit_form[:slug]}
+              label="Optional URL alias"
+              placeholder="saturday-workshop"
+            />
+            <div class="rounded-box bg-base-200/60 p-3 text-xs text-base-content/60">
+              Experience: {@edit_candidate.package.name} · Stable ID: {@edit_candidate.id}
+            </div>
+            <div class="modal-action">
+              <button type="button" phx-click="cancel_instance_details" class="btn">Cancel</button>
+              <button class="btn btn-primary">Save details</button>
+            </div>
+          </.form>
+        </div>
+        <button
+          phx-click="cancel_instance_details"
+          class="modal-backdrop"
+          aria-label="Cancel editing workshop details"
+        >close</button>
+      </dialog>
 
       <dialog :if={@archive_candidate} open class="modal modal-open">
         <div class="modal-box">
@@ -907,6 +1105,58 @@ defmodule WakeCanvasWeb.ManageLive do
   defp instance_archive_error(reason), do: "Could not import the instance: #{inspect(reason)}"
 
   defp find_package(socket, id), do: Enum.find(socket.assigns.packages, &(&1.id == id))
+
+  defp management_section(section)
+       when section in ["workshops", "import", "experiences", "system"],
+       do: section
+
+  defp management_section(_), do: "workshops"
+
+  defp management_tab_class(current, section),
+    do: ["tab whitespace-nowrap", current == section && "tab-active"]
+
+  defp management_section_description("workshops"),
+    do: "Configure, preview, and choose the workshop shown on this kiosk."
+
+  defp management_section_description("import"),
+    do: "Move complete workshops between WakeCanvas installations and manage archived work."
+
+  defp management_section_description("experiences"),
+    do: "Review, install, update, or remove the Experience packages available on this kiosk."
+
+  defp management_section_description("system"),
+    do: "Check storage, runtime, package, and renderer health for this installation."
+
+  defp participant_qr_destinations(instance) do
+    prefix = "/i/#{Experiences.instance_reference(instance)}"
+
+    [
+      %{
+        id: "artwork",
+        title: "Add an artwork",
+        audience: "Participants",
+        description:
+          "Photograph or upload a finished artwork and optionally add the creator's name. Use this at the artwork intake station.",
+        path: "#{prefix}/artwork"
+      },
+      %{
+        id: "moments",
+        title: "Add workshop moments",
+        audience: "Facilitator / photographer",
+        description:
+          "Upload atmosphere and activity photos from the workshop. These may wait for review before appearing on the wall.",
+        path: "#{prefix}/moments"
+      },
+      %{
+        id: "messages",
+        title: "Leave a message",
+        audience: "Visitors",
+        description:
+          "Submit a short message or testimonial that the Experience can include in the shared presentation.",
+        path: "#{prefix}/messages"
+      }
+    ]
+  end
 
   defp diagnostic_badge_class(:ok), do: "badge badge-success badge-outline"
   defp diagnostic_badge_class(:warning), do: "badge badge-warning badge-outline"
