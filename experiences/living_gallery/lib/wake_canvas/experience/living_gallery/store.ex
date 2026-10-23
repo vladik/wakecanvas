@@ -152,6 +152,22 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
     end)
   end
 
+  def update_metadata(database_path, id, attrs) do
+    with_write_repo(database_path, fn ->
+      query!(
+        "UPDATE media_items SET title = ?, creator_name = ?, show_attribution = ? WHERE id = ? AND deleted_at IS NULL",
+        [
+          attrs.title |> normalize_text(120) |> blank_to_nil(),
+          attrs.creator_name |> normalize_text(80) |> blank_to_nil(),
+          if(attrs.show_attribution == true, do: 1, else: 0),
+          id
+        ]
+      )
+
+      :ok
+    end)
+  end
+
   def soft_delete(database_path, id) do
     with_write_repo(database_path, fn ->
       now = DateTime.utc_now() |> DateTime.truncate(:second)
@@ -370,4 +386,9 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
 
   defp blank_to_nil(""), do: nil
   defp blank_to_nil(value), do: value
+
+  defp normalize_text(value, max) when is_binary(value),
+    do: value |> String.trim() |> String.slice(0, max)
+
+  defp normalize_text(_value, _max), do: ""
 end

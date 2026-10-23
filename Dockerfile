@@ -18,7 +18,7 @@ RUN npm ci --ignore-scripts \
     && mix assets.setup \
     && mix assets.deploy \
     && mkdir -p /build/packages \
-    && mix wakecanvas.package --output /build/packages/living-gallery-0.1.0.wakecanvas
+    && mix wakecanvas.package --output /build/packages/living-gallery-0.2.0.wakecanvas
 
 WORKDIR /src/platform
 RUN mix deps.get --only prod \

@@ -27,6 +27,7 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
       |> assign(:data_dir, session["data_dir"])
       |> assign(:media_base_url, session["media_base_url"])
       |> assign(:pubsub_server, session["pubsub_server"])
+      |> assign(:edit_candidate, nil)
       |> assign(:delete_candidate, nil)
       |> assign(:purge_candidate, nil)
       |> assign(:message_delete_candidate, nil)
@@ -54,6 +55,31 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
     )
 
     {:noreply, load_items(socket)}
+  end
+
+  def handle_event("open_edit", %{"id" => id}, socket) do
+    item = Enum.find(socket.assigns.items, &(&1.id == String.to_integer(id)))
+    {:noreply, assign(socket, :edit_candidate, item)}
+  end
+
+  def handle_event("cancel_edit", _params, socket),
+    do: {:noreply, assign(socket, :edit_candidate, nil)}
+
+  def handle_event("save_metadata", %{"item_id" => id, "metadata" => params}, socket) do
+    :ok =
+      Store.update_metadata(socket.assigns.database_path, String.to_integer(id), %{
+        title: bounded_text(params["title"], 120),
+        creator_name: bounded_text(params["creator_name"], 80),
+        show_attribution: params["show_attribution"] == "true"
+      })
+
+    broadcast_change(socket)
+
+    {:noreply,
+     socket
+     |> assign(:edit_candidate, nil)
+     |> put_flash(:info, "Submission details were updated.")
+     |> load_items()}
   end
 
   def handle_event("open_delete", %{"id" => id}, socket) do
@@ -200,6 +226,11 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
     end
   end
 
+  defp bounded_text(value, max) when is_binary(value),
+    do: value |> String.trim() |> String.slice(0, max)
+
+  defp bounded_text(_value, _max), do: ""
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -215,8 +246,12 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
             <div style="padding:1rem">
               <small style="text-transform:uppercase;letter-spacing:.12em;color:#8b5e3c">{String.replace(item.kind, "_", " ")}</small>
               <h2 style="margin:.35rem 0">{item.title || item.creator_name || "Untitled submission"}</h2>
+              <p :if={item.creator_name} style="margin:.2rem 0;color:#756b5e">
+                Creator: {item.creator_name}
+              </p>
               <p style="color:#756b5e">Status: {item.status}</p>
               <div style="display:flex;gap:.6rem;margin-top:1rem">
+                <button phx-click="open_edit" phx-value-id={item.id} style="flex:1;border:1px solid #2d5d50;border-radius:9px;padding:.65rem;background:white;color:#2d5d50;cursor:pointer">Edit details</button>
                 <button :if={item.status != "published"} phx-click="status" phx-value-id={item.id} phx-value-status="published" style="flex:1;border:0;border-radius:9px;padding:.65rem;background:#2d6a4f;color:white;cursor:pointer">Publish</button>
                 <button :if={item.status == "published"} phx-click="status" phx-value-id={item.id} phx-value-status="unpublished" style="flex:1;border:1px solid #c8b8ad;border-radius:9px;padding:.65rem;background:white;color:#8b3434;cursor:pointer">Unpublish</button>
               </div>
@@ -267,6 +302,60 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
           </div>
         </section>
       </div>
+
+      <dialog :if={@edit_candidate} open style="position:fixed;inset:0;margin:auto;border:0;border-radius:18px;padding:0;max-width:36rem;width:calc(100% - 2rem);box-shadow:0 30px 100px #0007">
+        <div style="padding:1.5rem">
+          <p style="margin:0;text-transform:uppercase;letter-spacing:.14em;font-size:.7rem;color:#8b5e3c">
+            {String.replace(@edit_candidate.kind, "_", " ")}
+          </p>
+          <h2 style="font:500 1.7rem Georgia,serif;margin:.35rem 0 0">Edit submission details</h2>
+          <img
+            src={"#{@media_base_url}/#{@edit_candidate.filename}"}
+            alt="Submission preview"
+            style="display:block;width:100%;max-height:240px;margin-top:1rem;border-radius:12px;object-fit:contain;background:#e8e2d9"
+          />
+          <form phx-submit="save_metadata" class="lg-ui-form" style="display:grid;gap:1rem;margin-top:1rem">
+            <input type="hidden" name="item_id" value={@edit_candidate.id} />
+            <label style="display:grid;gap:.4rem;font-weight:600">
+              Title
+              <input
+                name="metadata[title]"
+                value={@edit_candidate.title}
+                maxlength="120"
+                placeholder="Optional title"
+              />
+            </label>
+            <label style="display:grid;gap:.4rem;font-weight:600">
+              Creator name
+              <input
+                name="metadata[creator_name]"
+                value={@edit_candidate.creator_name}
+                maxlength="80"
+                placeholder="Optional creator name"
+              />
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:.7rem;padding:.8rem;border:1px solid #ddd4c7;border-radius:12px;cursor:pointer">
+              <input
+                type="checkbox"
+                name="metadata[show_attribution]"
+                value="true"
+                checked={@edit_candidate.show_attribution}
+                style="width:1.2rem;height:1.2rem;margin-top:.1rem"
+              />
+              <span>
+                <strong style="display:block">Show creator name on the wall</strong>
+                <small style="display:block;margin-top:.25rem;color:#74695b;font-weight:400">
+                  Variants that support attribution can display this name.
+                </small>
+              </span>
+            </label>
+            <div style="display:flex;justify-content:flex-end;gap:.7rem;margin-top:.4rem">
+              <button type="button" phx-click="cancel_edit" style="border:1px solid #c8b8ad;border-radius:9px;padding:.65rem 1rem;background:white;cursor:pointer">Cancel</button>
+              <button type="submit">Save details</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
 
       <dialog :if={@delete_candidate} open style="position:fixed;inset:0;margin:auto;border:0;border-radius:18px;padding:0;max-width:32rem;width:calc(100% - 2rem);box-shadow:0 30px 100px #0007">
         <div style="padding:1.5rem">

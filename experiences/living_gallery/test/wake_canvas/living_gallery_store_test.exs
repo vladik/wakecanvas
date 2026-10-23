@@ -31,6 +31,16 @@ defmodule WakeCanvas.Experience.LivingGallery.StoreTest do
     assert item.original_filename == "sun-original.jpg"
     assert item.original_mime_type == "image/jpeg"
 
+    assert :ok =
+             Store.update_metadata(database, item.id, %{
+               title: "  Brighter Sun  ",
+               creator_name: "Alex",
+               show_attribution: true
+             })
+
+    assert [%{title: "Brighter Sun", creator_name: "Alex", show_attribution: true}] =
+             Store.list(database)
+
     assert :ok = Store.set_status(database, item.id, "published")
     assert [%{status: "published"}] = Store.list(database, "published")
 

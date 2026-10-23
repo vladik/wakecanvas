@@ -488,6 +488,30 @@
   letter-spacing: -.035em;
 }
 
+.living-spiral__identity small {
+  display: none;
+}
+
+.living-spiral--focus .living-spiral__identity {
+  gap: .42rem;
+  max-width: min(44vw, 38rem);
+  padding: .9rem 1.1rem 1rem;
+  background: #050609a8;
+  border-left: 3px solid #d7b889;
+  backdrop-filter: blur(10px);
+}
+
+.living-spiral--focus .living-spiral__identity small {
+  display: block;
+  max-width: 42ch;
+  color: #d9d1c5;
+  font: 500 clamp(.65rem, .85vw, .88rem)/1.4 ui-sans-serif, system-ui;
+}
+
+.living-spiral--focus .living-spiral__identity--empty {
+  display: none;
+}
+
 .living-spiral__credit {
   position: absolute;
   z-index: 2;
@@ -504,6 +528,43 @@
 .living-spiral__credit strong {
   font: 400 clamp(1.15rem, 2vw, 2.1rem)/1.1 Georgia, serif;
   text-shadow: 0 3px 24px #000, 0 1px 4px #000;
+}
+
+.living-spiral__credit small {
+  display: none;
+}
+
+.living-spiral--focus .living-spiral__credit {
+  bottom: clamp(.65rem, 2vh, 1.6rem);
+  width: fit-content;
+  min-width: min(50vw, 30rem);
+  max-width: 82vw;
+  justify-items: center;
+  align-items: center;
+  box-sizing: border-box;
+  padding: .8rem 1.35rem;
+  background: #050609a8;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: blur(10px);
+}
+
+.living-spiral--focus .living-spiral__credit--empty {
+  display: none;
+}
+
+.living-spiral--focus .living-spiral__credit strong {
+  font-size: clamp(1.1rem, 2.1vw, 2.25rem);
+}
+
+.living-spiral--focus .living-spiral__credit small {
+  display: block;
+  min-height: 1em;
+  color: #d7b889;
+  font: 650 clamp(.62rem, .8vw, .82rem)/1.25 ui-sans-serif, system-ui;
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
 .living-spiral__vignette {

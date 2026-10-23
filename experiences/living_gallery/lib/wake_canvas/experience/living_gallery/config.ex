@@ -6,6 +6,9 @@ defmodule WakeCanvas.Experience.LivingGallery.Config do
     "moments_auto_publish" => false,
     "messages_auto_publish" => false,
     "retain_originals" => true,
+    "presentation_label" => "Living Gallery",
+    "presentation_title" => "",
+    "presentation_description" => "",
     "display_variant" => "living-collage"
   }
 

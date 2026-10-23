@@ -91,6 +91,7 @@ external_experience =
 built_in_experiences = [
   %{
     entry_module: "WakeCanvas.Experience.LivingGallery",
+    register_in_catalog: true,
     ebin:
       Path.expand(
         "../../experiences/living_gallery/_build/dev/lib/wake_canvas_experience_living_gallery/ebin",

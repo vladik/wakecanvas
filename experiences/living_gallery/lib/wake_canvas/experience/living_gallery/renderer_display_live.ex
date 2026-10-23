@@ -14,6 +14,10 @@ defmodule WakeCanvas.Experience.LivingGallery.RendererDisplayLive do
      |> assign(:instance_id, session["instance_id"])
      |> assign(:renderer_diagnostics_api, session["renderer_diagnostics_api"])
      |> assign(:instance_name, session["instance_name"] || "Living Gallery")
+     |> assign(
+       :config,
+       WakeCanvas.Experience.LivingGallery.Config.with_defaults(session["config"])
+     )
      |> assign(:display_variant, session["display_variant"] || "living-collage")
      |> assign(:renderer_url, session["renderer_url"])
      |> assign(:renderer_capabilities, session["renderer_capabilities"] || [])
@@ -42,6 +46,13 @@ defmodule WakeCanvas.Experience.LivingGallery.RendererDisplayLive do
   @impl true
   def handle_info(:media_changed, socket) do
     socket = load_items(socket)
+    {:noreply, push_event(socket, "experience:snapshot", renderer_context(socket.assigns))}
+  end
+
+  def handle_info({:config_changed, config}, socket) do
+    socket =
+      assign(socket, :config, WakeCanvas.Experience.LivingGallery.Config.with_defaults(config))
+
     {:noreply, push_event(socket, "experience:snapshot", renderer_context(socket.assigns))}
   end
 
@@ -80,6 +91,9 @@ defmodule WakeCanvas.Experience.LivingGallery.RendererDisplayLive do
     %{
       instanceId: assigns.instance_id,
       instanceName: assigns.instance_name,
+      presentationLabel: assigns.config["presentation_label"],
+      presentationTitle: assigns.config["presentation_title"],
+      presentationDescription: assigns.config["presentation_description"],
       variant: assigns.display_variant,
       moments: Enum.map(assigns.moments, &serialize_item(&1, assigns.media_base_url)),
       artworks: Enum.map(assigns.artworks, &serialize_item(&1, assigns.media_base_url)),

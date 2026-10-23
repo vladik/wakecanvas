@@ -15,7 +15,7 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
     instance = %WakeCanvas.ExperienceSDK.Instance{
       id: Ecto.UUID.generate(),
       experience_id: "org.wakecanvas.experience.living-gallery",
-      experience_version: "0.1.0",
+      experience_version: "0.2.0",
       name: "Migration test",
       config: %{},
       data_dir: root,
@@ -40,6 +40,8 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
     assert Enum.find(definition.surfaces, &(&1.id == :messages)).path == "messages"
     assert definition.default_display_variant == "living-collage"
     assert definition.config_schema["retain_originals"].default
+    assert definition.config_schema["presentation_label"].default == "Living Gallery"
+    assert definition.config_schema["presentation_title"].default == ""
 
     assert Enum.find(definition.display_variants, &(&1.id == "living-collage")).label ==
              "Living Film Collage"
@@ -47,10 +49,14 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
     assert Enum.find(definition.display_variants, &(&1.id == "gallery-orbit")).label ==
              "Living Spiral"
 
+    assert Enum.find(definition.display_variants, &(&1.id == "gallery-orbit-focus")).label ==
+             "Living Spiral — Focus"
+
     assert Enum.map(definition.display_variants, & &1.id) == [
              "living-collage",
              "quiet-spotlight",
              "gallery-orbit",
+             "gallery-orbit-focus",
              "growing-canvas",
              "community-tapestry",
              "gravity-playground"
@@ -68,5 +74,8 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
     assert Config.retain_originals?(%{})
     refute Config.retain_originals?(%{"retain_originals" => false})
     assert Config.with_defaults(%{})["display_variant"] == "living-collage"
+    assert Config.with_defaults(%{})["presentation_label"] == "Living Gallery"
+    assert Config.with_defaults(%{})["presentation_title"] == ""
+    assert Config.with_defaults(%{})["presentation_description"] == ""
   end
 end

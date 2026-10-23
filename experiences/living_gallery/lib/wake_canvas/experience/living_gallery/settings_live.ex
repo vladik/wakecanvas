@@ -7,6 +7,8 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
   def mount(_params, session, socket) do
     definition = WakeCanvas.Experience.LivingGallery.definition()
 
+    config = Config.with_defaults(session["config"])
+
     {:ok,
      assign(socket,
        page_title: "Living Gallery Settings",
@@ -16,9 +18,10 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
        stylesheet_url: session["experience_stylesheet_url"],
        asset_base_url: session["experience_asset_base_url"],
        config_api: session["config_api"],
-       config: Config.with_defaults(session["config"]),
+       pubsub_server: session["pubsub_server"],
+       config: config,
        variants: definition.display_variants,
-       selected_variant: Config.with_defaults(session["config"])["display_variant"],
+       selected_variant: config["display_variant"],
        saved: false
      )}
   end
@@ -40,12 +43,21 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
       "moments_auto_publish" => settings["moments_auto_publish"] == "true",
       "messages_auto_publish" => settings["messages_auto_publish"] == "true",
       "retain_originals" => settings["retain_originals"] == "true",
+      "presentation_label" => bounded_text(settings["presentation_label"], 80),
+      "presentation_title" => bounded_text(settings["presentation_title"], 100),
+      "presentation_description" => bounded_text(settings["presentation_description"], 160),
       "display_variant" => socket.assigns.selected_variant
     }
 
     case socket.assigns.config_api.update_instance_config(socket.assigns.instance_id, patch) do
       {:ok, config} ->
         config = Config.with_defaults(config)
+
+        Phoenix.PubSub.broadcast(
+          socket.assigns.pubsub_server,
+          "living-gallery:#{socket.assigns.instance_id}",
+          {:config_changed, config}
+        )
 
         {:noreply,
          assign(socket, config: config, selected_variant: config["display_variant"], saved: true)}
@@ -63,12 +75,60 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
       <div class="lg-ui__container lg-ui__container--settings" style="max-width:760px;margin:0 auto">
         <a href="/manage" style="color:#6c6255;text-decoration:none">← Manage kiosk</a>
         <p style="margin-top:3rem;text-transform:uppercase;letter-spacing:.18em;font-size:.72rem;color:#8b5e3c">{@instance_name}</p>
-        <h1 style="font:500 clamp(2.5rem,7vw,5rem)/1 Georgia,serif;margin:.5rem 0 1rem">Publishing settings</h1>
-        <p style="max-width:620px;color:#6c6255;font-size:1.05rem;line-height:1.6">Choose whether new uploads appear immediately or wait for an operator to publish them.</p>
+        <h1 style="font:500 clamp(2.5rem,7vw,5rem)/1 Georgia,serif;margin:.5rem 0 1rem">Presentation settings</h1>
+        <p style="max-width:620px;color:#6c6255;font-size:1.05rem;line-height:1.6">Control the words and visual style shown on the wall, plus how new contributions are published.</p>
 
         <div :if={@saved} class="lg-ui-notice lg-ui-notice--success" style="margin-top:2rem;padding:1rem 1.2rem;border-radius:14px;background:#dff3e5;color:#235934">Settings saved.</div>
 
         <form phx-submit="save" class="lg-ui-card lg-ui-form" style="margin-top:2rem;display:grid;gap:1rem;padding:clamp(1.2rem,4vw,2.2rem);border-radius:24px;background:#fff;box-shadow:0 18px 55px #4b382315">
+          <fieldset style="border:0;padding:0;margin:0 0 1rem">
+            <legend style="font:600 1.3rem Georgia,serif;margin-bottom:.35rem">Wall identity</legend>
+            <p style="margin:.2rem 0 1rem;color:#74695b">
+              All visitor-facing text shown by supported display variants. The internal workshop name is managed separately.
+            </p>
+            <div style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+              <label style="display:grid;gap:.4rem;font-weight:600">
+                Presentation label
+                <input
+                  name="settings[presentation_label]"
+                  value={@config["presentation_label"]}
+                  maxlength="80"
+                  placeholder="Living Gallery"
+                  style="padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit"
+                />
+                <small style="color:#74695b;font-weight:400;line-height:1.4">
+                  Optional event, venue, organization, or location shown above the presentation name.
+                </small>
+              </label>
+              <label style="display:grid;gap:.4rem;font-weight:600">
+                Presentation name
+                <input
+                  name="settings[presentation_title]"
+                  value={@config["presentation_title"]}
+                  maxlength="100"
+                  placeholder="Workshop Moments"
+                  style="padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit"
+                />
+                <small style="color:#74695b;font-weight:400;line-height:1.4">
+                  Optional public name shown on the wall. This does not rename the workshop in WakeCanvas.
+                </small>
+              </label>
+              <label style="display:grid;gap:.4rem;font-weight:600">
+                Presentation description
+                <input
+                  name="settings[presentation_description]"
+                  value={@config["presentation_description"]}
+                  maxlength="160"
+                  placeholder="Optional short description"
+                  style="padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit"
+                />
+                <small style="color:#74695b;font-weight:400;line-height:1.4">
+                  A short optional line shown below the presentation name when a variant supports it.
+                </small>
+              </label>
+            </div>
+          </fieldset>
+
           <fieldset style="border:0;padding:0;margin:0 0 1rem">
             <legend style="font:600 1.3rem Georgia,serif;margin-bottom:.35rem">Default wall presentation</legend>
             <p style="margin:.2rem 0 1rem;color:#74695b">This variant opens automatically after the kiosk restarts.</p>
@@ -127,4 +187,9 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
     </main>
     """
   end
+
+  defp bounded_text(value, max) when is_binary(value),
+    do: value |> String.trim() |> String.slice(0, max)
+
+  defp bounded_text(_value, _max), do: ""
 end

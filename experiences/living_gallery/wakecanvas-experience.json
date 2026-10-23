@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "experienceId": "org.wakecanvas.experience.living-gallery",
   "name": "Living Gallery",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "otpApplication": "wake_canvas_experience_living_gallery",
   "entryModule": "WakeCanvas.Experience.LivingGallery",
   "target": "any",
@@ -16,13 +16,17 @@
     "moments_auto_publish": {"type": "boolean", "default": false},
     "messages_auto_publish": {"type": "boolean", "default": false},
     "retain_originals": {"type": "boolean", "default": true},
-    "display_variant": {"type": "enum", "default": "living-collage", "values": ["living-collage", "quiet-spotlight", "gallery-orbit", "growing-canvas", "community-tapestry", "gravity-playground"]}
+    "presentation_label": {"type": "string", "default": "Living Gallery"},
+    "presentation_title": {"type": "string", "default": ""},
+    "presentation_description": {"type": "string", "default": ""},
+    "display_variant": {"type": "enum", "default": "living-collage", "values": ["living-collage", "quiet-spotlight", "gallery-orbit", "gallery-orbit-focus", "growing-canvas", "community-tapestry", "gravity-playground"]}
   },
   "defaultDisplayVariant": "living-collage",
   "displayVariants": [
     {"id": "living-collage", "label": "Living Film Collage", "description": "Workshop memories flow through film ribbons while colourful artwork animates the foreground.", "entrypoint": "static/variants/drifting-collage.js", "thumbnail": "static/previews/living-collage.svg", "capabilities": ["webgl"], "fallback": "community-tapestry"},
     {"id": "quiet-spotlight", "label": "Living Light", "description": "Artwork is revealed through prismatic light while workshop memories dissolve behind it.", "entrypoint": "static/variants/quiet-spotlight.js", "thumbnail": "static/previews/quiet-spotlight.svg"},
     {"id": "gallery-orbit", "label": "Gallery Orbit", "description": "Artwork travels through a calm three-dimensional gallery.", "entrypoint": "static/variants/gallery-orbit.js", "thumbnail": "static/previews/gallery-orbit.svg", "capabilities": ["webgl2"], "fallback": "community-tapestry"},
+    {"id": "gallery-orbit-focus", "label": "Living Spiral — Focus", "description": "A clean, frameless spiral with artwork enlarged for a full-screen spotlight.", "entrypoint": "static/variants/gallery-orbit-focus.js", "thumbnail": "static/previews/gallery-orbit-focus.svg", "capabilities": ["webgl2"], "fallback": "community-tapestry"},
     {"id": "growing-canvas", "label": "Growing Canvas", "description": "Artwork grows into a generative garden shaped by workshop memories and sound.", "entrypoint": "static/variants/growing-canvas.js", "thumbnail": "static/previews/growing-canvas.svg", "capabilities": ["webgl"], "fallback": "community-tapestry"},
     {"id": "community-tapestry", "label": "Community Tapestry", "description": "Artwork, memories, and messages are stitched into an accessible community composition.", "entrypoint": "static/variants/community-tapestry.js", "thumbnail": "static/previews/community-tapestry.svg"},
     {"id": "gravity-playground", "label": "Living Balance", "description": "An endless artwork rain changes suspended memory platforms and takes turns in a central spotlight.", "entrypoint": "static/variants/gravity-playground.js", "thumbnail": "static/previews/gravity-playground.svg", "capabilities": ["webgl"], "fallback": "community-tapestry"}

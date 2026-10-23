@@ -4,7 +4,7 @@ defmodule WakeCanvas.Experience.LivingGallery.MixProject do
   def project do
     [
       app: :wake_canvas_experience_living_gallery,
-      version: "0.1.0",
+      version: "0.2.0",
       elixir: "~> 1.20",
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),

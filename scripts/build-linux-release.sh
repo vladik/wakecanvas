@@ -143,7 +143,7 @@ done
 install -m 0644 "$REPO_ROOT/packaging/linux/README.txt" "$BUNDLE_ROOT/README.txt"
 install -m 0644 "$REPO_ROOT/packaging/linux/admin-tools/README.txt" "$BUNDLE_ROOT/admin-tools/README.txt"
 
-PACKAGE_PATH="$BUNDLE_ROOT/packages/living-gallery-0.1.0.wakecanvas"
+PACKAGE_PATH="$BUNDLE_ROOT/packages/living-gallery-0.2.0.wakecanvas"
 (
   cd "$REPO_ROOT/experiences/living_gallery"
   mix wakecanvas.package --output "$PACKAGE_PATH"

@@ -15,7 +15,7 @@ defmodule WakeCanvas.Experience.LivingGallery do
     %Definition{
       id: "org.wakecanvas.experience.living-gallery",
       name: "Living Gallery",
-      version: "0.1.0",
+      version: "0.2.0",
       otp_application: :wake_canvas_experience_living_gallery,
       stylesheet: "static/experience.css",
       surfaces: [
@@ -94,6 +94,16 @@ defmodule WakeCanvas.Experience.LivingGallery do
           fallback: "community-tapestry"
         },
         %DisplayVariant{
+          id: "gallery-orbit-focus",
+          label: "Living Spiral — Focus",
+          description:
+            "A clean, frameless spiral with artwork enlarged for a full-screen spotlight.",
+          entrypoint: "static/variants/gallery-orbit-focus.js",
+          thumbnail: "static/previews/gallery-orbit-focus.svg",
+          capabilities: [:webgl2],
+          fallback: "community-tapestry"
+        },
+        %DisplayVariant{
           id: "growing-canvas",
           label: "Growing Canvas",
           description: "Each contribution becomes a seed in a generative garden.",
@@ -126,6 +136,9 @@ defmodule WakeCanvas.Experience.LivingGallery do
         "moments_auto_publish" => %{type: :boolean, default: false},
         "messages_auto_publish" => %{type: :boolean, default: false},
         "retain_originals" => %{type: :boolean, default: true},
+        "presentation_label" => %{type: :string, default: "Living Gallery"},
+        "presentation_title" => %{type: :string, default: ""},
+        "presentation_description" => %{type: :string, default: ""},
         "display_variant" => %{
           type: :enum,
           default: "living-collage",
@@ -133,6 +146,7 @@ defmodule WakeCanvas.Experience.LivingGallery do
             "living-collage",
             "quiet-spotlight",
             "gallery-orbit",
+            "gallery-orbit-focus",
             "growing-canvas",
             "community-tapestry",
             "gravity-playground"

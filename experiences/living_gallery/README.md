@@ -10,7 +10,7 @@ Implemented surfaces:
   HTML/SVG variants;
 - an artwork/object camera intake station with optional attribution;
 - a Workshop Moments uploader for real-time workshop photography;
-- operator review and settings views;
+- operator review with editable photo metadata and settings views;
 - Experience-owned SQLite metadata and local media storage; and
 - PubSub-driven updates from intake to display.
 
@@ -22,6 +22,12 @@ here and are not platform dependencies. The Three.js `gallery-orbit` entry point
 is presented as **Living Spiral**: workshop photographs form its outer memory
 helix while artwork travels on a brighter inner orbit and periodically enters an
 automatic, hands-free hero sequence.
+
+The companion Three.js variant **Living Spiral — Focus** keeps the original
+available for comparison while presenting unframed, fully opaque memories and a
+larger featured artwork. It shows the artwork title before optional creator
+attribution and uses the instance's editable presentation label, public name,
+and description rather than coupling wall text to the internal instance name.
 
 The PixiJS `living-collage` entry point is presented as **Living Film Collage**.
 Workshop moments continuously develop and travel through layered film ribbons,

@@ -10,6 +10,7 @@ config :esbuild,
       js/variants/drifting-collage.js
       js/variants/quiet-spotlight.js
       js/variants/gallery-orbit.js
+      js/variants/gallery-orbit-focus.js
       js/variants/growing-canvas.js
       js/variants/community-tapestry.js
       js/variants/gravity-playground.js

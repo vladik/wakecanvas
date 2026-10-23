@@ -78,7 +78,7 @@ try {
 
     $packagesRoot = Join-Path $bundleRoot 'packages'
     New-Item -ItemType Directory -Force -Path $packagesRoot | Out-Null
-    $packagePath = Join-Path $packagesRoot 'living-gallery-0.1.0.wakecanvas'
+    $packagePath = Join-Path $packagesRoot 'living-gallery-0.2.0.wakecanvas'
     Invoke-Mix $livingGallery @('wakecanvas.package', '--output', $packagePath)
     Invoke-Mix $platform @('wakecanvas.package.verify', $packagePath)
 

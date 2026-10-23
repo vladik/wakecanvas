@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title">
+  <title id="title">Living Spiral Focus preview</title>
+  <defs>
+    <radialGradient id="bg"><stop stop-color="#202130"/><stop offset=".55" stop-color="#08090e"/><stop offset="1" stop-color="#020305"/></radialGradient>
+    <linearGradient id="art" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#edb66d"/><stop offset=".48" stop-color="#ca6e5b"/><stop offset="1" stop-color="#568e86"/></linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <g opacity=".72">
+    <image href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='75'%3E%3Crect width='120' height='75' fill='%23597780'/%3E%3Ccircle cx='35' cy='34' r='18' fill='%23d8a46a'/%3E%3Cpath d='M0 69L43 39 72 60 96 35 120 56V75H0Z' fill='%232f4248'/%3E%3C/svg%3E" x="18" y="54" width="120" height="75"/>
+    <image href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='108' height='68'%3E%3Crect width='108' height='68' fill='%238c6f72'/%3E%3Ccircle cx='76' cy='24' r='15' fill='%23e1b879'/%3E%3Cpath d='M0 63L28 34 52 56 82 39 108 57V68H0Z' fill='%234b343f'/%3E%3C/svg%3E" x="512" y="82" width="108" height="68"/>
+    <image href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='105' height='66'%3E%3Crect width='105' height='66' fill='%235c746d'/%3E%3Ccircle cx='30' cy='25' r='13' fill='%23d99463'/%3E%3Cpath d='M0 61L35 38 59 54 80 33 105 52V66H0Z' fill='%232c403b'/%3E%3C/svg%3E" x="52" y="254" width="105" height="66"/>
+  </g>
+  <path d="M22 88C177 8 571 47 590 157S211 340 46 270" fill="none" stroke="#d7b889" stroke-width="1.5" opacity=".32"/>
+  <rect x="181" y="24" width="278" height="286" fill="url(#art)"/>
+  <path d="M205 276C240 224 243 132 319 84C354 136 386 157 434 123C422 214 376 266 319 286Z" fill="#f5d58d" opacity=".76"/>
+  <rect x="238" y="316" width="164" height="5" rx="2.5" fill="#e5c89d" opacity=".75"/>
+  <rect x="272" y="329" width="96" height="3" rx="1.5" fill="#bd9a70" opacity=".7"/>
+</svg>
