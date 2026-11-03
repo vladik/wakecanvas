@@ -27,6 +27,7 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
       |> assign(:data_dir, session["data_dir"])
       |> assign(:media_base_url, session["media_base_url"])
       |> assign(:pubsub_server, session["pubsub_server"])
+      |> assign(:active_review_tab, "artwork")
       |> assign(:edit_candidate, nil)
       |> assign(:delete_candidate, nil)
       |> assign(:purge_candidate, nil)
@@ -45,6 +46,11 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
   end
 
   @impl true
+  def handle_event("select_review_tab", %{"tab" => tab}, socket)
+      when tab in ["artwork", "moments", "messages", "removed"] do
+    {:noreply, assign(socket, :active_review_tab, tab)}
+  end
+
   def handle_event("status", %{"id" => id, "status" => status}, socket) do
     :ok = Store.set_status(socket.assigns.database_path, String.to_integer(id), status)
 
@@ -244,6 +250,13 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
 
   defp video?(item), do: String.starts_with?(item.mime_type || "", "video/")
 
+  defp media_items_for_tab(items, "artwork"), do: Enum.filter(items, &(&1.kind == "artwork"))
+
+  defp media_items_for_tab(items, "moments"),
+    do: Enum.filter(items, &(&1.kind == "workshop_moment"))
+
+  defp media_items_for_tab(_items, _tab), do: []
+
   defp media_label(item) do
     if video?(item), do: "Workshop video", else: String.replace(item.kind, "_", " ")
   end
@@ -276,9 +289,75 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
       <div class="lg-ui__container lg-ui__container--wide" style="max-width:1100px;margin:0 auto">
         <a href="/manage" style="color:#6c6255;text-decoration:none">← Manage kiosk</a>
         <h1 style="font:500 clamp(2.5rem,6vw,4.5rem)/1 Georgia,serif;margin:2rem 0 .5rem">Review Submissions</h1>
-        <p style="color:#74695b">{@instance_name} · {Enum.count(@items, &(&1.status == "pending"))} awaiting review</p>
-        <div class="lg-ui-review-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1.2rem;margin-top:2rem">
-          <article :for={item <- @items} style="overflow:hidden;border-radius:18px;background:white;box-shadow:0 12px 35px #4b382315">
+        <p style="color:#74695b">
+          {@instance_name} · {Enum.count(@items, &(&1.status == "pending")) + Enum.count(@messages, &(&1.status == "pending"))} awaiting review
+        </p>
+
+        <nav class="lg-ui-review-tabs" role="tablist" aria-label="Review submission types">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={to_string(@active_review_tab == "artwork")}
+            class={["lg-ui-review-tab", @active_review_tab == "artwork" && "lg-ui-review-tab--active"]}
+            phx-click="select_review_tab"
+            phx-value-tab="artwork"
+          >
+            <span class="lg-ui-review-tab__label">Artwork</span>
+            <span class="lg-ui-review-tab__count">{Enum.count(@items, &(&1.kind == "artwork"))}</span>
+            <small>Participant creations</small>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={to_string(@active_review_tab == "moments")}
+            class={["lg-ui-review-tab", @active_review_tab == "moments" && "lg-ui-review-tab--active"]}
+            phx-click="select_review_tab"
+            phx-value-tab="moments"
+          >
+            <span class="lg-ui-review-tab__label">Moments</span>
+            <span class="lg-ui-review-tab__count">{Enum.count(@items, &(&1.kind == "workshop_moment"))}</span>
+            <small>Workshop photos and videos</small>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={to_string(@active_review_tab == "messages")}
+            class={["lg-ui-review-tab", @active_review_tab == "messages" && "lg-ui-review-tab--active"]}
+            phx-click="select_review_tab"
+            phx-value-tab="messages"
+          >
+            <span class="lg-ui-review-tab__label">Messages</span>
+            <span class="lg-ui-review-tab__count">{length(@messages)}</span>
+            <small>Testimonials and reflections</small>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={to_string(@active_review_tab == "removed")}
+            class={["lg-ui-review-tab", @active_review_tab == "removed" && "lg-ui-review-tab--active"]}
+            phx-click="select_review_tab"
+            phx-value-tab="removed"
+          >
+            <span class="lg-ui-review-tab__label">Removed</span>
+            <span class="lg-ui-review-tab__count">{length(@deleted_items) + length(@deleted_messages)}</span>
+            <small>Restore or permanently delete</small>
+          </button>
+        </nav>
+
+        <section :if={@active_review_tab in ["artwork", "moments"]} class="lg-ui-review-panel" role="tabpanel">
+          <header class="lg-ui-review-panel__header">
+            <h2>{if @active_review_tab == "artwork", do: "Artwork", else: "Workshop Moments"}</h2>
+            <p>
+              {if @active_review_tab == "artwork",
+                do: "Review participant creations, creator details, and publishing status.",
+                else: "Review workshop photos and videos, choose featured Moments, and control publishing."}
+            </p>
+          </header>
+          <div :if={media_items_for_tab(@items, @active_review_tab) == []} class="lg-ui-review-empty">
+            No submissions in this section yet.
+          </div>
+          <div :if={media_items_for_tab(@items, @active_review_tab) != []} class="lg-ui-review-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1.2rem">
+          <article :for={item <- media_items_for_tab(@items, @active_review_tab)} style="overflow:hidden;border-radius:18px;background:white;box-shadow:0 12px 35px #4b382315">
             <video
               :if={video?(item)}
               src={"#{@media_base_url}/#{item.filename}"}
@@ -313,11 +392,14 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
               <button phx-click="open_delete" phx-value-id={item.id} style="width:100%;margin-top:.65rem;border:0;background:transparent;color:#8b3434;text-decoration:underline;cursor:pointer">Remove media</button>
             </div>
           </article>
-        </div>
+          </div>
+        </section>
 
-        <section class="lg-ui-review-section" style="margin-top:3rem;border-top:1px solid #d8d0c4;padding-top:2rem">
+        <section :if={@active_review_tab == "messages"} class="lg-ui-review-panel lg-ui-review-section" role="tabpanel">
           <h2 style="font:500 2rem Georgia,serif;margin:0">Messages and testimonials</h2>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-top:1rem">
+          <p style="color:#74695b">Review visitor reflections and control which messages appear on the wall.</p>
+          <div :if={@messages == []} class="lg-ui-review-empty">No messages have been submitted yet.</div>
+          <div :if={@messages != []} style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-top:1rem">
             <article :for={item <- @messages} style="padding:1.2rem;border-radius:16px;background:white;box-shadow:0 12px 35px #4b382315">
               <blockquote style="margin:0;font:1.1rem/1.5 Georgia,serif">“{item.body}”</blockquote>
               <p :if={item.show_attribution && item.author_name} style="color:#756b5e">— {item.author_name}</p>
@@ -331,7 +413,7 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
           </div>
         </section>
 
-        <section :if={@deleted_messages != []} style="margin-top:2rem">
+        <section :if={@active_review_tab == "removed" && @deleted_messages != []} class="lg-ui-review-panel" role="tabpanel">
           <h2 style="font:500 1.5rem Georgia,serif;margin:0">Removed messages</h2>
           <div style="display:grid;gap:.7rem;margin-top:1rem">
             <article :for={item <- @deleted_messages} style="padding:1rem;border-radius:12px;background:#e8e2d9">
@@ -342,7 +424,7 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
           </div>
         </section>
 
-        <section :if={@deleted_items != []} style="margin-top:3rem;border-top:1px solid #d8d0c4;padding-top:2rem">
+        <section :if={@active_review_tab == "removed" && @deleted_items != []} class="lg-ui-review-panel" role="tabpanel">
           <h2 style="font:500 2rem Georgia,serif;margin:0">Recently removed</h2>
           <p style="color:#74695b">Files are kept on this kiosk and can be restored.</p>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1rem;margin-top:1rem">
@@ -363,6 +445,15 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
               </div>
             </article>
           </div>
+        </section>
+
+        <section
+          :if={@active_review_tab == "removed" && @deleted_items == [] && @deleted_messages == []}
+          class="lg-ui-review-panel"
+          role="tabpanel"
+        >
+          <h2 style="font:500 2rem Georgia,serif;margin:0">Removed submissions</h2>
+          <div class="lg-ui-review-empty">Nothing has been removed.</div>
         </section>
       </div>
 
