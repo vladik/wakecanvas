@@ -83,7 +83,7 @@ Build and validate the Windows kiosk ZIP with:
 ```powershell
 .\scripts\build-windows-release.ps1 -Force
 .\scripts\smoke-windows-release.ps1 `
-  -Archive .\dist\wakecanvas-0.1.0-windows-x64.zip
+  -Archive .\dist\wakecanvas-0.2.0-windows-x64.zip
 ```
 
 See the [Windows kiosk guide](docs/operations/windows-kiosk.md) for installation,

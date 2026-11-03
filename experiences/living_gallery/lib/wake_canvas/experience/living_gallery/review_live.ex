@@ -66,12 +66,23 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
     do: {:noreply, assign(socket, :edit_candidate, nil)}
 
   def handle_event("save_metadata", %{"item_id" => id, "metadata" => params}, socket) do
+    item_id = String.to_integer(id)
+
     :ok =
-      Store.update_metadata(socket.assigns.database_path, String.to_integer(id), %{
+      Store.update_metadata(socket.assigns.database_path, item_id, %{
         title: bounded_text(params["title"], 120),
         creator_name: bounded_text(params["creator_name"], 80),
         show_attribution: params["show_attribution"] == "true"
       })
+
+    if socket.assigns.edit_candidate.kind == "workshop_moment" do
+      :ok =
+        Store.set_featured(
+          socket.assigns.database_path,
+          item_id,
+          params["featured"] == "true"
+        )
+    end
 
     broadcast_change(socket)
 
@@ -119,14 +130,14 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
         {:noreply,
          socket
          |> assign(:purge_candidate, nil)
-         |> put_flash(:info, "Image and retained files were permanently deleted.")
+         |> put_flash(:info, "Media and retained files were permanently deleted.")
          |> load_items()}
 
       {:error, :not_deleted} ->
         {:noreply,
          socket
          |> assign(:purge_candidate, nil)
-         |> put_flash(:error, "Only a removed image can be permanently deleted.")
+         |> put_flash(:error, "Only removed media can be permanently deleted.")
          |> load_items()}
     end
   end
@@ -231,6 +242,32 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
 
   defp bounded_text(_value, _max), do: ""
 
+  defp video?(item), do: String.starts_with?(item.mime_type || "", "video/")
+
+  defp media_label(item) do
+    if video?(item), do: "Workshop video", else: String.replace(item.kind, "_", " ")
+  end
+
+  defp video_details(item) do
+    duration =
+      case item.duration_ms do
+        milliseconds when is_integer(milliseconds) and milliseconds > 0 ->
+          seconds = div(milliseconds, 1000)
+
+          "#{div(seconds, 60)}:#{seconds |> rem(60) |> Integer.to_string() |> String.pad_leading(2, "0")}"
+
+        _ ->
+          "Unknown duration"
+      end
+
+    dimensions =
+      if is_integer(item.width) and is_integer(item.height),
+        do: "#{item.width}×#{item.height}",
+        else: "Unknown dimensions"
+
+    "#{duration} · #{dimensions}"
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -242,20 +279,38 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
         <p style="color:#74695b">{@instance_name} · {Enum.count(@items, &(&1.status == "pending"))} awaiting review</p>
         <div class="lg-ui-review-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1.2rem;margin-top:2rem">
           <article :for={item <- @items} style="overflow:hidden;border-radius:18px;background:white;box-shadow:0 12px 35px #4b382315">
-            <img src={"#{@media_base_url}/#{item.filename}"} style="display:block;width:100%;aspect-ratio:4/3;object-fit:cover" />
+            <video
+              :if={video?(item)}
+              src={"#{@media_base_url}/#{item.filename}"}
+              controls
+              muted
+              playsinline
+              preload="metadata"
+              style="display:block;width:100%;aspect-ratio:4/3;object-fit:contain;background:#08090c"
+            >
+            </video>
+            <img :if={!video?(item)} src={"#{@media_base_url}/#{item.filename}"} style="display:block;width:100%;aspect-ratio:4/3;object-fit:cover" />
             <div style="padding:1rem">
-              <small style="text-transform:uppercase;letter-spacing:.12em;color:#8b5e3c">{String.replace(item.kind, "_", " ")}</small>
+              <small style="text-transform:uppercase;letter-spacing:.12em;color:#8b5e3c">
+                {media_label(item)}
+              </small>
               <h2 style="margin:.35rem 0">{item.title || item.creator_name || "Untitled submission"}</h2>
               <p :if={item.creator_name} style="margin:.2rem 0;color:#756b5e">
                 Creator: {item.creator_name}
               </p>
               <p style="color:#756b5e">Status: {item.status}</p>
+              <p :if={video?(item)} style="margin:.2rem 0;color:#756b5e;font-size:.85rem">
+                {video_details(item)} · silent on the wall
+              </p>
+              <p :if={item.kind == "workshop_moment" && item.featured} style="margin:.55rem 0 0;color:#754b1c;font-size:.85rem;font-weight:650">
+                Featured Moment
+              </p>
               <div style="display:flex;gap:.6rem;margin-top:1rem">
                 <button phx-click="open_edit" phx-value-id={item.id} style="flex:1;border:1px solid #2d5d50;border-radius:9px;padding:.65rem;background:white;color:#2d5d50;cursor:pointer">Edit details</button>
                 <button :if={item.status != "published"} phx-click="status" phx-value-id={item.id} phx-value-status="published" style="flex:1;border:0;border-radius:9px;padding:.65rem;background:#2d6a4f;color:white;cursor:pointer">Publish</button>
                 <button :if={item.status == "published"} phx-click="status" phx-value-id={item.id} phx-value-status="unpublished" style="flex:1;border:1px solid #c8b8ad;border-radius:9px;padding:.65rem;background:white;color:#8b3434;cursor:pointer">Unpublish</button>
               </div>
-              <button phx-click="open_delete" phx-value-id={item.id} style="width:100%;margin-top:.65rem;border:0;background:transparent;color:#8b3434;text-decoration:underline;cursor:pointer">Remove image</button>
+              <button phx-click="open_delete" phx-value-id={item.id} style="width:100%;margin-top:.65rem;border:0;background:transparent;color:#8b3434;text-decoration:underline;cursor:pointer">Remove media</button>
             </div>
           </article>
         </div>
@@ -292,7 +347,15 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
           <p style="color:#74695b">Files are kept on this kiosk and can be restored.</p>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1rem;margin-top:1rem">
             <article :for={item <- @deleted_items} style="overflow:hidden;border-radius:14px;background:#e8e2d9">
-              <img src={"#{@media_base_url}/#{item.filename}"} style="display:block;width:100%;aspect-ratio:4/3;object-fit:cover;opacity:.55" />
+              <video
+                :if={video?(item)}
+                src={"#{@media_base_url}/#{item.filename}"}
+                muted
+                preload="metadata"
+                style="display:block;width:100%;aspect-ratio:4/3;object-fit:contain;background:#08090c;opacity:.55"
+              >
+              </video>
+              <img :if={!video?(item)} src={"#{@media_base_url}/#{item.filename}"} style="display:block;width:100%;aspect-ratio:4/3;object-fit:cover;opacity:.55" />
               <div style="padding:.8rem">
                 <small>{String.replace(item.kind, "_", " ")}</small>
                 <button phx-click="restore" phx-value-id={item.id} style="display:block;width:100%;margin-top:.6rem;border:1px solid #756b5e;border-radius:8px;padding:.5rem;background:white;cursor:pointer">Restore</button>
@@ -309,7 +372,18 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
             {String.replace(@edit_candidate.kind, "_", " ")}
           </p>
           <h2 style="font:500 1.7rem Georgia,serif;margin:.35rem 0 0">Edit submission details</h2>
+          <video
+            :if={video?(@edit_candidate)}
+            src={"#{@media_base_url}/#{@edit_candidate.filename}"}
+            controls
+            muted
+            playsinline
+            preload="metadata"
+            style="display:block;width:100%;max-height:240px;margin-top:1rem;object-fit:contain;background:#08090c"
+          >
+          </video>
           <img
+            :if={!video?(@edit_candidate)}
             src={"#{@media_base_url}/#{@edit_candidate.filename}"}
             alt="Submission preview"
             style="display:block;width:100%;max-height:240px;margin-top:1rem;border-radius:12px;object-fit:contain;background:#e8e2d9"
@@ -325,7 +399,7 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
                 placeholder="Optional title"
               />
             </label>
-            <label style="display:grid;gap:.4rem;font-weight:600">
+            <label :if={@edit_candidate.kind == "artwork"} style="display:grid;gap:.4rem;font-weight:600">
               Creator name
               <input
                 name="metadata[creator_name]"
@@ -334,7 +408,7 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
                 placeholder="Optional creator name"
               />
             </label>
-            <label style="display:flex;align-items:flex-start;gap:.7rem;padding:.8rem;border:1px solid #ddd4c7;border-radius:12px;cursor:pointer">
+            <label :if={@edit_candidate.kind == "artwork"} style="display:flex;align-items:flex-start;gap:.7rem;padding:.8rem;border:1px solid #ddd4c7;border-radius:12px;cursor:pointer">
               <input
                 type="checkbox"
                 name="metadata[show_attribution]"
@@ -349,6 +423,21 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
                 </small>
               </span>
             </label>
+            <label :if={@edit_candidate.kind == "workshop_moment"} style="display:flex;align-items:flex-start;gap:.7rem;padding:.9rem;border:1px solid #d7b889;border-radius:12px;background:#fffaf0;cursor:pointer">
+              <input
+                type="checkbox"
+                name="metadata[featured]"
+                value="true"
+                checked={@edit_candidate.featured}
+                style="width:1.2rem;height:1.2rem;margin-top:.1rem"
+              />
+              <span>
+                <strong style="display:block">Mark as a featured Moment</strong>
+                <small style="display:block;margin-top:.3rem;color:#74695b;font-weight:400;line-height:1.4">
+                  Presentation variants may give featured Moments special emphasis.
+                </small>
+              </span>
+            </label>
             <div style="display:flex;justify-content:flex-end;gap:.7rem;margin-top:.4rem">
               <button type="button" phx-click="cancel_edit" style="border:1px solid #c8b8ad;border-radius:9px;padding:.65rem 1rem;background:white;cursor:pointer">Cancel</button>
               <button type="submit">Save details</button>
@@ -359,19 +448,19 @@ defmodule WakeCanvas.Experience.LivingGallery.ReviewLive do
 
       <dialog :if={@delete_candidate} open style="position:fixed;inset:0;margin:auto;border:0;border-radius:18px;padding:0;max-width:32rem;width:calc(100% - 2rem);box-shadow:0 30px 100px #0007">
         <div style="padding:1.5rem">
-          <h2 style="font:500 1.7rem Georgia,serif;margin:0">Remove this image?</h2>
+          <h2 style="font:500 1.7rem Georgia,serif;margin:0">Remove this media?</h2>
           <p style="color:#74695b;line-height:1.5">It will disappear from the wall, but its file will remain safely stored and you can restore it from this page.</p>
           <div style="display:flex;justify-content:flex-end;gap:.7rem;margin-top:1.4rem">
             <button phx-click="cancel_delete" style="border:1px solid #c8b8ad;border-radius:9px;padding:.65rem 1rem;background:white;cursor:pointer">Cancel</button>
-            <button phx-click="delete" phx-value-id={@delete_candidate.id} style="border:0;border-radius:9px;padding:.65rem 1rem;background:#8b3434;color:white;cursor:pointer">Remove image</button>
+            <button phx-click="delete" phx-value-id={@delete_candidate.id} style="border:0;border-radius:9px;padding:.65rem 1rem;background:#8b3434;color:white;cursor:pointer">Remove media</button>
           </div>
         </div>
       </dialog>
 
       <dialog :if={@purge_candidate} open style="position:fixed;inset:0;margin:auto;border:0;border-radius:18px;padding:0;max-width:32rem;width:calc(100% - 2rem);box-shadow:0 30px 100px #0007">
         <div style="padding:1.5rem">
-          <h2 style="font:500 1.7rem Georgia,serif;margin:0">Permanently delete this image?</h2>
-          <p style="color:#74695b;line-height:1.5">This permanently removes the database record, prepared display image, and retained original. It cannot be restored.</p>
+          <h2 style="font:500 1.7rem Georgia,serif;margin:0">Permanently delete this media?</h2>
+          <p style="color:#74695b;line-height:1.5">This permanently removes the database record, display file, and any retained original. It cannot be restored.</p>
           <div style="display:flex;justify-content:flex-end;gap:.7rem;margin-top:1.4rem">
             <button phx-click="cancel_purge" style="border:1px solid #c8b8ad;border-radius:9px;padding:.65rem 1rem;background:white;cursor:pointer">Cancel</button>
             <button phx-click="purge" phx-value-id={@purge_candidate.id} style="border:0;border-radius:9px;padding:.65rem 1rem;background:#8b3434;color:white;cursor:pointer">Delete permanently</button>

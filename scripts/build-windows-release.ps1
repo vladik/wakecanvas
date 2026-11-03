@@ -16,6 +16,8 @@ if (-not $OutputDirectory) {
 }
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 $version = (Select-String -Path (Join-Path $repoRoot 'platform\mix.exs') -Pattern 'version: "([^"]+)"').Matches[0].Groups[1].Value
+$livingGalleryManifest = Get-Content -LiteralPath (Join-Path $repoRoot 'experiences\living_gallery\wakecanvas-experience.json') -Raw | ConvertFrom-Json
+$livingGalleryVersion = $livingGalleryManifest.version
 if ($InstanceArchive) {
     $InstanceArchive = [IO.Path]::GetFullPath($InstanceArchive)
     if (-not (Test-Path -LiteralPath $InstanceArchive -PathType Leaf)) {
@@ -78,7 +80,7 @@ try {
 
     $packagesRoot = Join-Path $bundleRoot 'packages'
     New-Item -ItemType Directory -Force -Path $packagesRoot | Out-Null
-    $packagePath = Join-Path $packagesRoot 'living-gallery-0.2.0.wakecanvas'
+    $packagePath = Join-Path $packagesRoot "living-gallery-$livingGalleryVersion.wakecanvas"
     Invoke-Mix $livingGallery @('wakecanvas.package', '--output', $packagePath)
     Invoke-Mix $platform @('wakecanvas.package.verify', $packagePath)
 

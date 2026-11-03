@@ -48,17 +48,30 @@ Experience-specific UI behind them.
 
 ## Display variants
 
-Living Gallery declares seven presentations over the same content: PixiJS/GSAP
+Living Gallery declares eight presentations over the same content: PixiJS/GSAP
 `living-collage` (presented as **Living Film Collage**), DOM/CSS `quiet-spotlight`
 (presented as **Living Light**),
 Three.js/GSAP `gallery-orbit` (presented as **Living Spiral**), its frameless
-`gallery-orbit-focus` companion (presented as **Living Spiral — Focus**), p5.js
+`gallery-orbit-focus` companion (presented as **Living Spiral — Focus**), its
+featured-media companion `gallery-orbit-focus-video` (presented as **Living Spiral
+— Featured Moments**), p5.js
 `growing-canvas`, HTML/SVG `community-tapestry`, and PixiJS/Matter.js
 `gravity-playground`. The Settings surface shows
 every declared variant and stores one as the instance default. `/i/:uuid/display`
 uses that default after restart, while `/i/:uuid/display/:variant_id` previews any
 variant without changing saved configuration. Renderers declare capability needs;
 GPU variants fall back to Community Tapestry when WebGL support is unavailable.
+
+`gallery-orbit-focus-video` is presented as **Living Spiral — Featured Moments**. Videos are
+Workshop Moments rather than a separate content collection. Operators publish and
+feature individual moments in the existing review workflow; the Featured Moments renderer
+includes photographs and paused video first frames in the memory orbit, then
+periodically brings featured moments into focus with the same spatial zoom and
+caption system used by artwork. The surrounding scene continues moving while a
+video plays silently to its natural end. It sizes portrait, landscape, and square
+media within a common uncropped hero area and returns each moment to its orbit.
+Existing variants receive image moments only and therefore remain compatible when
+an instance contains videos.
 
 Display variants share storage, moderation, and PubSub state. They differ only in
 their Experience-owned rendering code.

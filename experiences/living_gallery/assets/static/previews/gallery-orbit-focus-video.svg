@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title description">
+  <title id="title">Living Spiral Featured Moments preview</title>
+  <desc id="description">A portrait video in the central focus surrounded by a warm spiral of workshop images.</desc>
+  <defs>
+    <radialGradient id="background" cx="50%" cy="48%" r="75%">
+      <stop offset="0" stop-color="#17213a"/>
+      <stop offset=".55" stop-color="#080b14"/>
+      <stop offset="1" stop-color="#030407"/>
+    </radialGradient>
+    <linearGradient id="video" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d59762"/>
+      <stop offset=".5" stop-color="#704f72"/>
+      <stop offset="1" stop-color="#243c5b"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="9" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="640" height="360" fill="url(#background)"/>
+  <g opacity=".62" fill="none" stroke="#d7b889" stroke-width="2">
+    <ellipse cx="320" cy="180" rx="270" ry="118" transform="rotate(-10 320 180)"/>
+    <ellipse cx="320" cy="180" rx="228" ry="92" transform="rotate(13 320 180)" opacity=".42"/>
+  </g>
+  <g fill="#d8c6aa" opacity=".72">
+    <rect x="54" y="120" width="88" height="58" transform="rotate(-8 98 149)"/>
+    <rect x="488" y="77" width="96" height="64" transform="rotate(7 536 109)"/>
+    <rect x="475" y="246" width="104" height="68" transform="rotate(-5 527 280)"/>
+    <rect x="80" y="238" width="94" height="61" transform="rotate(9 127 268)"/>
+  </g>
+  <rect x="237" y="26" width="166" height="308" rx="2" fill="#d7b889" opacity=".18" filter="url(#glow)"/>
+  <rect x="245" y="28" width="150" height="304" fill="url(#video)"/>
+  <circle cx="320" cy="180" r="31" fill="#050609b8" stroke="#f6ead8" stroke-width="2"/>
+  <path d="M311 162v36l28-18z" fill="#f6ead8"/>
+  <text x="24" y="32" fill="#d7b889" font-family="system-ui,sans-serif" font-size="12" letter-spacing="3">LIVING SPIRAL — CINEMA</text>
+</svg>

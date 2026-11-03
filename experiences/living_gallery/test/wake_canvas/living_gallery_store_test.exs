@@ -94,6 +94,39 @@ defmodule WakeCanvas.Experience.LivingGallery.StoreTest do
     assert Store.list(database) |> length() == 10
   end
 
+  test "stores video moments and controls whether they enter the featured sequence" do
+    directory =
+      Path.join(
+        System.tmp_dir!(),
+        "wakecanvas-video-#{System.system_time(:microsecond)}-#{System.unique_integer([:positive])}"
+      )
+
+    database = Path.join(directory, "experience.sqlite")
+    on_exit(fn -> File.rm_rf(directory) end)
+
+    assert :ok =
+             Store.insert(database, %{
+               kind: "workshop_moment",
+               status: "published",
+               title: "Studio portrait",
+               creator_name: nil,
+               show_attribution: false,
+               filename: "portrait.mp4",
+               mime_type: "video/mp4",
+               featured: true,
+               duration_ms: 42_500,
+               width: 1080,
+               height: 1920,
+               file_size: 12_345
+             })
+
+    assert [%{id: id, featured: true, duration_ms: 42_500, width: 1080, height: 1920}] =
+             Store.list(database, "published")
+
+    assert :ok = Store.set_featured(database, id, false)
+    assert [%{featured: false}] = Store.list(database, "published")
+  end
+
   test "stores, moderates, restores, and purges visitor messages" do
     directory =
       Path.join(

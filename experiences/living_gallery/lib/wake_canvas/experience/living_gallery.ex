@@ -15,7 +15,7 @@ defmodule WakeCanvas.Experience.LivingGallery do
     %Definition{
       id: "org.wakecanvas.experience.living-gallery",
       name: "Living Gallery",
-      version: "0.2.0",
+      version: "0.3.0",
       otp_application: :wake_canvas_experience_living_gallery,
       stylesheet: "static/experience.css",
       surfaces: [
@@ -104,6 +104,16 @@ defmodule WakeCanvas.Experience.LivingGallery do
           fallback: "community-tapestry"
         },
         %DisplayVariant{
+          id: "gallery-orbit-focus-video",
+          label: "Living Spiral — Featured Moments",
+          description:
+            "Featured photos and videos move into the main focus while the living spiral continues around them.",
+          entrypoint: "static/variants/gallery-orbit-focus-video.js",
+          thumbnail: "static/previews/gallery-orbit-focus-video.svg",
+          capabilities: [:webgl2],
+          fallback: "community-tapestry"
+        },
+        %DisplayVariant{
           id: "growing-canvas",
           label: "Growing Canvas",
           description: "Each contribution becomes a seed in a generative garden.",
@@ -139,6 +149,12 @@ defmodule WakeCanvas.Experience.LivingGallery do
         "presentation_label" => %{type: :string, default: "Living Gallery"},
         "presentation_title" => %{type: :string, default: ""},
         "presentation_description" => %{type: :string, default: ""},
+        "featured_interval_seconds" => %{
+          type: :integer,
+          default: 180,
+          minimum: 30,
+          maximum: 3_600
+        },
         "display_variant" => %{
           type: :enum,
           default: "living-collage",
@@ -147,6 +163,7 @@ defmodule WakeCanvas.Experience.LivingGallery do
             "quiet-spotlight",
             "gallery-orbit",
             "gallery-orbit-focus",
+            "gallery-orbit-focus-video",
             "growing-canvas",
             "community-tapestry",
             "gravity-playground"

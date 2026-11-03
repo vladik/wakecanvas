@@ -14,7 +14,7 @@ for compiling Experience browser assets; the resulting kiosk does not:
 ```powershell
 .\scripts\build-windows-release.ps1 -Force
 .\scripts\smoke-windows-release.ps1 `
-  -Archive .\dist\wakecanvas-0.1.0-windows-x64.zip
+  -Archive .\dist\wakecanvas-0.2.0-windows-x64.zip
 ```
 
 The smoke test extracts into a unique temporary directory, initializes a new data
