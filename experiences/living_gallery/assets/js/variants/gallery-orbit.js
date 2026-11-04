@@ -6,13 +6,85 @@ const TAU = Math.PI * 2
 const ARTWORK_LIMIT = 28
 const MOMENT_LIMIT = 16
 const FEATURE_INTERVAL = 10
+const CINEMA_PHOTO_DURATION_MS = 10_000
+const CINEMA_PLAYBACK_TIMEOUT_MS = 15_000
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
 const lerp = (from, to, amount) => from + (to - from) * amount
 
 function textureAspect(texture) {
   const image = texture?.image
-  return image?.width && image?.height ? image.width / image.height : 4 / 3
+  const width = image?.videoWidth || image?.naturalWidth || image?.width
+  const height = image?.videoHeight || image?.naturalHeight || image?.height
+  return width && height ? width / height : 4 / 3
+}
+
+function videoElement(texture) {
+  const image = texture?.image
+  return image instanceof HTMLVideoElement ? image : null
+}
+
+function releaseTexture(texture) {
+  const video = videoElement(texture)
+  if (video) {
+    video.pause()
+    video.removeAttribute("src")
+    video.load()
+  }
+  texture?.dispose()
+}
+
+function loadVideoTexture(item) {
+  return new Promise(resolve => {
+    const video = document.createElement("video")
+    video.muted = true
+    video.defaultMuted = true
+    video.volume = 0
+    video.playsInline = true
+    video.preload = "auto"
+    video.disablePictureInPicture = true
+    video.setAttribute("disableremoteplayback", "")
+
+    let settled = false
+    const timeout = window.setTimeout(() => finish(null), CINEMA_PLAYBACK_TIMEOUT_MS)
+
+    function cleanup() {
+      window.clearTimeout(timeout)
+      video.removeEventListener("loadeddata", onLoaded)
+      video.removeEventListener("error", onError)
+    }
+
+    function finish(texture) {
+      if (settled) return
+      settled = true
+      cleanup()
+      if (!texture) {
+        video.removeAttribute("src")
+        video.load()
+      }
+      resolve(texture)
+    }
+
+    function onLoaded() {
+      video.pause()
+      const texture = new THREE.VideoTexture(video)
+      texture.colorSpace = THREE.SRGBColorSpace
+      // requestVideoFrameCallback does not necessarily fire for a video that
+      // was loaded and paused before its texture was created. Force the
+      // decoded first frame into WebGL so the video has a visible orbit card.
+      texture.needsUpdate = true
+      finish(texture)
+    }
+
+    function onError() {
+      finish(null)
+    }
+
+    video.addEventListener("loadeddata", onLoaded)
+    video.addEventListener("error", onError)
+    video.src = item.url
+    video.load()
+  })
 }
 
 function disposeObject(object) {
@@ -20,11 +92,11 @@ function disposeObject(object) {
     child.geometry?.dispose()
     if (Array.isArray(child.material)) {
       child.material.forEach(material => {
-        material.map?.dispose()
+        releaseTexture(material.map)
         material.dispose()
       })
     } else {
-      child.material?.map?.dispose()
+      releaseTexture(child.material?.map)
       child.material?.dispose()
     }
   })
@@ -37,8 +109,10 @@ function nextFreeSlot(layer) {
   return slot
 }
 
-function createMomentCard(item, texture, slot, focus = false) {
-  const aspect = clamp(textureAspect(texture), 0.72, 1.65)
+function createMomentCard(item, texture, slot, focus = false, preserveAspect = false) {
+  const aspect = preserveAspect
+    ? clamp(textureAspect(texture), 0.5, 1.8)
+    : clamp(textureAspect(texture), 0.72, 1.65)
   const height = 1.42
   const width = height * aspect
   const card = new THREE.Group()
@@ -55,7 +129,19 @@ function createMomentCard(item, texture, slot, focus = false) {
   )
   if (backing) card.add(backing)
   card.add(photograph)
-  card.userData = {item, slot, kind: "moment", photograph, backing, focus, phase: slot * 0.71, arrival: 1, entranceMix: 0}
+  card.userData = {
+    item,
+    slot,
+    kind: "moment",
+    photograph,
+    backing,
+    focus,
+    aspect,
+    phase: slot * 0.71,
+    arrival: 1,
+    entranceMix: 0,
+    heroMix: 0,
+  }
   return card
 }
 
@@ -97,6 +183,7 @@ function createAtmosphere(scene) {
 
 export async function mountWithOptions(container, initial, options = {}) {
   const focus = options.focus === true
+  const cinema = options.cinema === true
   container.replaceChildren()
   container.classList.add("living-spiral")
   if (focus) container.classList.add("living-spiral--focus")
@@ -160,17 +247,28 @@ export async function mountWithOptions(container, initial, options = {}) {
   const clock = new THREE.Clock()
   const cameraTarget = new THREE.Vector3()
   const heroPosition = new THREE.Vector3(0, 0.05, 4.2)
+  const momentOrbitEuler = new THREE.Euler()
+  const momentOrbitQuaternion = new THREE.Quaternion()
   const tweens = new Set()
   let elapsed = 0
   let generation = 0
   let featureTimer = null
   let featured = null
   let pendingFeatureId = null
+  let context = initial
+  let cinemaTimer = null
+  let cinemaFinishTimer = null
+  let cinemaPlaybackTimer = null
+  let cinemaCursor = 0
+  let cinemaActive = false
+  let focusedMoment = null
   let destroyed = false
   let firstRender = true
+  let presentationPaused = false
 
   function track(animation, onComplete) {
     tweens.add(animation)
+    if (presentationPaused) animation.pause()
     animation.eventCallback("onComplete", () => {
       tweens.delete(animation)
       onComplete?.()
@@ -211,13 +309,14 @@ export async function mountWithOptions(container, initial, options = {}) {
   }
 
   function activateFeature(next) {
-    if (!next || destroyed) return
+    if (!next || destroyed || cinemaActive) return
     featured = next
     showCredit(next)
     track(gsap.to(next.userData, {heroMix: 1, duration: 2.1, ease: "power3.inOut"}))
   }
 
   function featureNext(preferredId) {
+    if (cinemaActive) return
     const artworks = [...artworkLayer.children].sort((a, b) => a.userData.slot - b.userData.slot)
     if (!artworks.length || destroyed) return
     let next = preferredId ? artworks.find(artwork => artwork.userData.item.id === preferredId) : null
@@ -237,18 +336,132 @@ export async function mountWithOptions(container, initial, options = {}) {
 
   function armFeatureClock(immediate = false) {
     if (featureTimer) window.clearInterval(featureTimer)
+    if (presentationPaused || document.hidden || cinemaActive) {
+      featureTimer = null
+      return
+    }
     if (immediate) featureNext(pendingFeatureId)
     featureTimer = window.setInterval(() => featureNext(pendingFeatureId), FEATURE_INTERVAL * 1000)
+  }
+
+  function cinemaIntervalMs() {
+    const seconds = Number(context.featuredIntervalSeconds || 180)
+    return clamp(Number.isFinite(seconds) ? seconds : 180, 30, 3_600) * 1000
+  }
+
+  function featuredMomentCards() {
+    if (!cinema) return []
+    const featuredIds = new Set((context.featuredMoments || []).map(item => String(item.id)))
+    return momentLayer.children
+      .filter(card => featuredIds.has(String(card.userData.item.id)))
+      .sort((a, b) => a.userData.slot - b.userData.slot)
+  }
+
+  function clearCinemaTimers() {
+    window.clearTimeout(cinemaTimer)
+    window.clearTimeout(cinemaFinishTimer)
+    window.clearTimeout(cinemaPlaybackTimer)
+    cinemaTimer = null
+    cinemaFinishTimer = null
+    cinemaPlaybackTimer = null
+  }
+
+  function scheduleCinema(delay = cinemaIntervalMs()) {
+    window.clearTimeout(cinemaTimer)
+    cinemaTimer = null
+    if (!cinema || destroyed || cinemaActive || presentationPaused || document.hidden || featuredMomentCards().length === 0) return
+    cinemaTimer = window.setTimeout(startCinemaFeature, delay)
+  }
+
+  function startCinemaFeature() {
+    cinemaTimer = null
+    const cards = featuredMomentCards()
+    if (destroyed || cinemaActive || cards.length === 0) return
+
+    focusedMoment = cards[cinemaCursor % cards.length]
+    cinemaCursor = (cinemaCursor + 1) % cards.length
+    cinemaActive = true
+    if (featureTimer) window.clearInterval(featureTimer)
+    featureTimer = null
+    hideCredit()
+
+    const bringMomentForward = () => {
+      if (destroyed || !focusedMoment) return
+      showCredit(focusedMoment)
+      track(
+        gsap.to(focusedMoment.userData, {heroMix: 1, duration: 2.1, ease: "power3.inOut"}),
+        playFocusedMoment
+      )
+    }
+
+    if (featured) {
+      track(gsap.to(featured.userData, {heroMix: 0, duration: 1.5, ease: "power3.inOut"}), bringMomentForward)
+    } else {
+      bringMomentForward()
+    }
+  }
+
+  function playFocusedMoment() {
+    if (destroyed || !focusedMoment || !cinemaActive) return
+    const video = videoElement(focusedMoment.userData.photograph.material.map)
+    if (!video) {
+      cinemaFinishTimer = window.setTimeout(finishCinemaFeature, CINEMA_PHOTO_DURATION_MS)
+      return
+    }
+
+    video.currentTime = 0
+    video.addEventListener("ended", finishCinemaFeature, {once: true})
+    video.addEventListener("error", finishCinemaFeature, {once: true})
+    cinemaPlaybackTimer = window.setTimeout(finishCinemaFeature, CINEMA_PLAYBACK_TIMEOUT_MS)
+    video.play().then(() => {
+      window.clearTimeout(cinemaPlaybackTimer)
+      const durationMs = Number(focusedMoment?.userData.item.durationMs || video.duration * 1000)
+      cinemaPlaybackTimer = window.setTimeout(
+        finishCinemaFeature,
+        Math.max(Number.isFinite(durationMs) ? durationMs + 30_000 : 0, 60_000)
+      )
+    }).catch(finishCinemaFeature)
+  }
+
+  function finishCinemaFeature() {
+    if (!cinemaActive || destroyed || !focusedMoment) return
+    clearCinemaTimers()
+    const previous = focusedMoment
+    const video = videoElement(previous.userData.photograph.material.map)
+    video?.pause()
+    hideCredit()
+
+    track(gsap.to(previous.userData, {heroMix: 0, duration: 1.5, ease: "power3.inOut"}), () => {
+      if (video) {
+        video.currentTime = 0
+        video.removeEventListener("ended", finishCinemaFeature)
+        video.removeEventListener("error", finishCinemaFeature)
+      }
+      focusedMoment = null
+      cinemaActive = false
+      featureNext()
+      armFeatureClock(false)
+      scheduleCinema()
+    })
   }
 
   function onVisibilityChange() {
     if (document.hidden) {
       if (featureTimer) window.clearInterval(featureTimer)
       featureTimer = null
+      clearCinemaTimers()
+      if (focusedMoment) videoElement(focusedMoment.userData.photograph.material.map)?.pause()
       tweens.forEach(animation => animation.pause())
-    } else {
+    } else if (!presentationPaused) {
       tweens.forEach(animation => animation.resume())
-      armFeatureClock(false)
+      if (cinemaActive && focusedMoment?.userData.heroMix > 0.98) {
+        const video = videoElement(focusedMoment.userData.photograph.material.map)
+        if (video) video.play().catch(finishCinemaFeature)
+        else cinemaFinishTimer = window.setTimeout(finishCinemaFeature, CINEMA_PHOTO_DURATION_MS)
+      } else if (!cinemaActive) {
+        armFeatureClock(false)
+        scheduleCinema()
+      }
     }
   }
 
@@ -256,9 +469,15 @@ export async function mountWithOptions(container, initial, options = {}) {
     const wanted = new Map(items.map(item => [String(item.id), item]))
     const existing = new Map(layer.children.map(child => [String(child.userData.item.id), child]))
     const missing = items.filter(item => !existing.has(String(item.id)))
-    const loaded = await Promise.all(missing.map(item => loader.loadAsync(item.url).catch(() => null)))
+    const loaded = await Promise.all(
+      missing.map(item =>
+        item.mediaType === "video"
+          ? loadVideoTexture(item)
+          : loader.loadAsync(item.url).catch(() => null)
+      )
+    )
     if (expectedGeneration !== generation || destroyed) {
-      loaded.forEach(texture => texture?.dispose())
+      loaded.forEach(releaseTexture)
       return []
     }
 
@@ -267,6 +486,14 @@ export async function mountWithOptions(container, initial, options = {}) {
       if (item) child.userData.item = item
       else {
         if (child === featured) featured = null
+        if (child === focusedMoment) {
+          const video = videoElement(child.userData.photograph.material.map)
+          video?.removeEventListener("ended", finishCinemaFeature)
+          video?.removeEventListener("error", finishCinemaFeature)
+          clearCinemaTimers()
+          focusedMoment = null
+          cinemaActive = false
+        }
         layer.remove(child)
         disposeObject(child)
       }
@@ -284,11 +511,15 @@ export async function mountWithOptions(container, initial, options = {}) {
   }
 
   async function renderContent(next) {
+    context = next
     setPresentation(next)
     const current = ++generation
-    const moments = next.moments.slice(0, MOMENT_LIMIT)
+    const regularMoments = (cinema ? next.cinemaMoments || [] : next.moments || []).slice(0, MOMENT_LIMIT)
+    const moments = cinema
+      ? [...new Map([...regularMoments, ...(next.featuredMoments || [])].map(item => [String(item.id), item])).values()]
+      : regularMoments
     const artworks = next.artworks.slice(0, ARTWORK_LIMIT)
-    const momentPromise = reconcileLayer(momentLayer, moments, (item, texture, slot) => createMomentCard(item, texture, slot, focus), card => {
+    const momentPromise = reconcileLayer(momentLayer, moments, (item, texture, slot) => createMomentCard(item, texture, slot, focus, cinema), card => {
       if (!firstRender) {
         card.userData.arrival = 0
         card.userData.entranceMix = 1
@@ -312,8 +543,16 @@ export async function mountWithOptions(container, initial, options = {}) {
     if (firstRender) {
       firstRender = false
       armFeatureClock(true)
+      scheduleCinema()
     } else if (!featured && artworkLayer.children.length) {
       featureNext(pendingFeatureId)
+    }
+    if (cinema && !cinemaActive) {
+      if (!featureTimer) {
+        featureNext()
+        armFeatureClock(false)
+      }
+      if (!cinemaTimer) scheduleCinema()
     }
   }
 
@@ -330,22 +569,38 @@ export async function mountWithOptions(container, initial, options = {}) {
       lerp(orbitY, 2.15, data.entranceMix),
       lerp(orbitZ, 3.1, data.entranceMix)
     )
-    card.rotation.y = lerp(-angle + Math.PI / 2, 0, data.entranceMix)
-    card.rotation.z = lerp(Math.sin(slot * 2.1) * 0.055, -0.035, data.entranceMix)
-    card.scale.setScalar(data.arrival * lerp(1, 1.18, data.entranceMix))
+    card.position.lerp(heroPosition, data.heroMix)
+    if (cinema) {
+      // Derive the orbit orientation from scratch on every frame. Reusing the
+      // card's Euler values after a quaternion blend feeds the prior focus
+      // rotation back into the orbit and causes flips and visible jitter.
+      momentOrbitEuler.set(
+        0,
+        lerp(-angle + Math.PI / 2, 0, data.entranceMix),
+        lerp(Math.sin(slot * 2.1) * 0.055, -0.035, data.entranceMix)
+      )
+      momentOrbitQuaternion.setFromEuler(momentOrbitEuler)
+      card.quaternion.copy(momentOrbitQuaternion).slerp(camera.quaternion, data.heroMix)
+    } else {
+      card.rotation.y = lerp(-angle + Math.PI / 2, 0, data.entranceMix)
+      card.rotation.z = lerp(Math.sin(slot * 2.1) * 0.055, -0.035, data.entranceMix)
+    }
+    const orbitScale = lerp(1, 1.18, data.entranceMix)
+    const heroScale = focusedMediaScale(data.aspect, 1.42)
+    card.scale.setScalar(data.arrival * lerp(orbitScale, heroScale, data.heroMix))
     const depth = clamp((card.position.z + 9) / 13, 0.18, 1) * data.arrival
     data.photograph.material.opacity = data.focus
-      ? lerp(0.5 + depth * 0.5, 1, data.entranceMix) * data.arrival
+      ? lerp(lerp(0.5 + depth * 0.5, 1, data.entranceMix), 1, data.heroMix) * data.arrival
       : lerp(0.18 + depth * 0.48, 0.92, data.entranceMix) * data.arrival
     if (data.backing) {
       data.backing.material.opacity = lerp(0.08 + depth * 0.24, 0.52, data.entranceMix) * data.arrival
     }
-    const isEntering = data.entranceMix > 0.01
-    card.renderOrder = isEntering ? 10 : 0
-    if (data.backing) data.backing.renderOrder = isEntering ? 10 : 0
-    data.photograph.renderOrder = isEntering ? 11 : 0
-    if (data.backing) data.backing.material.depthTest = !isEntering
-    data.photograph.material.depthTest = !isEntering
+    const isProminent = data.entranceMix > 0.01 || data.heroMix > 0.05
+    card.renderOrder = data.heroMix > 0.05 ? 100 : isProminent ? 10 : 0
+    if (data.backing) data.backing.renderOrder = data.heroMix > 0.05 ? 100 : isProminent ? 10 : 0
+    data.photograph.renderOrder = data.heroMix > 0.05 ? 101 : isProminent ? 11 : 0
+    if (data.backing) data.backing.material.depthTest = !isProminent
+    data.photograph.material.depthTest = !isProminent
   }
 
   function positionArtwork(artwork, elapsed) {
@@ -358,7 +613,7 @@ export async function mountWithOptions(container, initial, options = {}) {
     const baseZ = Math.sin(angle) * radius - 1.25
     artwork.position.set(lerp(baseX, heroPosition.x, data.heroMix), lerp(baseY, heroPosition.y, data.heroMix), lerp(baseZ, heroPosition.z, data.heroMix))
     artwork.quaternion.copy(camera.quaternion)
-    const heroScale = data.focus ? focusedArtworkScale(data.aspect) : 1.58
+    const heroScale = data.focus ? focusedMediaScale(data.aspect, 1.9) : 1.58
     artwork.scale.setScalar(data.arrival * lerp(0.82, heroScale, data.heroMix))
     data.halo.material.opacity = data.focus ? 0 : lerp(0.05, 0.3, data.heroMix) * data.arrival
     data.image.material.opacity = data.arrival
@@ -370,11 +625,11 @@ export async function mountWithOptions(container, initial, options = {}) {
     data.image.material.depthTest = !isFeatured
   }
 
-  function focusedArtworkScale(aspect) {
+  function focusedMediaScale(aspect, mediaHeight) {
     const distance = 8
     const visibleHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * distance
     const visibleWidth = visibleHeight * camera.aspect
-    return clamp(Math.min((visibleWidth * 0.9) / (1.9 * aspect), (visibleHeight * 0.84) / 1.9), 1.65, 4.8)
+    return clamp(Math.min((visibleWidth * 0.9) / (mediaHeight * aspect), (visibleHeight * 0.84) / mediaHeight), 1.65, 5.8)
   }
 
   function resize(width, height) {
@@ -384,10 +639,7 @@ export async function mountWithOptions(container, initial, options = {}) {
     camera.updateProjectionMatrix()
   }
 
-  const stopResize = observeSize(container, resize)
-  document.addEventListener("visibilitychange", onVisibilityChange)
-  await renderContent(initial)
-  renderer.setAnimationLoop(() => {
+  function renderFrame() {
     elapsed += Math.min(clock.getDelta(), 0.05)
     camera.position.set(Math.sin(elapsed * 0.075) * 1.15, Math.sin(elapsed * 0.043) * 0.75, 12.2 + Math.cos(elapsed * 0.061) * 0.7)
     cameraTarget.set(Math.sin(elapsed * 0.05) * 0.3, Math.sin(elapsed * 0.035) * 0.35, -0.4)
@@ -401,15 +653,56 @@ export async function mountWithOptions(container, initial, options = {}) {
     atmosphere.rotation.y = elapsed * 0.012
     atmosphere.rotation.z = Math.sin(elapsed * 0.03) * 0.08
     renderer.render(scene, camera)
-  })
+  }
+
+  function pausePresentation() {
+    if (presentationPaused || destroyed) return
+    presentationPaused = true
+    if (featureTimer) window.clearInterval(featureTimer)
+    featureTimer = null
+    clearCinemaTimers()
+    if (focusedMoment) videoElement(focusedMoment.userData.photograph.material.map)?.pause()
+    tweens.forEach(animation => animation.pause())
+    renderer.setAnimationLoop(null)
+    clock.stop()
+  }
+
+  function resumePresentation() {
+    if (!presentationPaused || destroyed) return
+    presentationPaused = false
+    tweens.forEach(animation => animation.resume())
+    clock.start()
+    renderer.setAnimationLoop(renderFrame)
+    if (cinemaActive && focusedMoment?.userData.heroMix > 0.98) {
+      const video = videoElement(focusedMoment.userData.photograph.material.map)
+      if (video) video.play().catch(finishCinemaFeature)
+      else cinemaFinishTimer = window.setTimeout(finishCinemaFeature, CINEMA_PHOTO_DURATION_MS)
+    } else if (!cinemaActive) {
+      armFeatureClock(false)
+      scheduleCinema()
+    }
+  }
+
+  const stopResize = observeSize(container, resize)
+  document.addEventListener("visibilitychange", onVisibilityChange)
+  await renderContent(initial)
+  renderer.setAnimationLoop(renderFrame)
 
   return {
     update: renderContent,
     resize,
+    pausePresentation,
+    resumePresentation,
     destroy() {
       destroyed = true
       generation++
       if (featureTimer) window.clearInterval(featureTimer)
+      clearCinemaTimers()
+      if (focusedMoment) {
+        const video = videoElement(focusedMoment.userData.photograph.material.map)
+        video?.removeEventListener("ended", finishCinemaFeature)
+        video?.removeEventListener("error", finishCinemaFeature)
+      }
       document.removeEventListener("visibilitychange", onVisibilityChange)
       tweens.forEach(animation => animation.kill())
       tweens.clear()

@@ -12,6 +12,10 @@ defmodule WakeCanvas.Experience.LivingGallery.MomentsUploadLive do
       })
 
   def handle_event("validate", _, socket), do: {:noreply, socket}
+
+  def handle_event("select_media_type", %{"type" => type}, socket),
+    do: UploadLive.select_media_type(type, socket)
+
   def handle_event("save", params, socket), do: UploadLive.save(params, socket)
   def render(assigns), do: UploadLive.render(assigns)
 end

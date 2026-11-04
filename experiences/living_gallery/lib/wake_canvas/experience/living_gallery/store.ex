@@ -96,9 +96,9 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
       sql =
         if status,
           do:
-            "SELECT id, kind, status, title, creator_name, show_attribution, filename, mime_type, original_filename, original_mime_type, inserted_at, deleted_at FROM media_items WHERE status = ? AND deleted_at IS NULL ORDER BY id DESC",
+            "SELECT id, kind, status, title, creator_name, show_attribution, filename, mime_type, featured, duration_ms, width, height, file_size, original_filename, original_mime_type, inserted_at, deleted_at FROM media_items WHERE status = ? AND deleted_at IS NULL ORDER BY id DESC",
           else:
-            "SELECT id, kind, status, title, creator_name, show_attribution, filename, mime_type, original_filename, original_mime_type, inserted_at, deleted_at FROM media_items WHERE deleted_at IS NULL ORDER BY id DESC"
+            "SELECT id, kind, status, title, creator_name, show_attribution, filename, mime_type, featured, duration_ms, width, height, file_size, original_filename, original_mime_type, inserted_at, deleted_at FROM media_items WHERE deleted_at IS NULL ORDER BY id DESC"
 
       params = if status, do: [status], else: []
       %{rows: rows} = query!(sql, params)
@@ -110,7 +110,7 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
     with_repo(database_path, fn ->
       %{rows: rows} =
         query!(
-          "SELECT id, kind, status, title, creator_name, show_attribution, filename, mime_type, original_filename, original_mime_type, inserted_at, deleted_at FROM media_items WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+          "SELECT id, kind, status, title, creator_name, show_attribution, filename, mime_type, featured, duration_ms, width, height, file_size, original_filename, original_mime_type, inserted_at, deleted_at FROM media_items WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
         )
 
       Enum.map(rows, &row_to_item/1)
@@ -122,7 +122,7 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
       now = DateTime.utc_now() |> DateTime.truncate(:second)
 
       query!(
-        "INSERT INTO media_items (kind, status, title, creator_name, show_attribution, filename, mime_type, original_filename, original_mime_type, inserted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO media_items (kind, status, title, creator_name, show_attribution, filename, mime_type, featured, duration_ms, width, height, file_size, original_filename, original_mime_type, inserted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           attrs.kind,
           attrs.status,
@@ -131,6 +131,11 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
           attrs.show_attribution,
           attrs.filename,
           attrs.mime_type,
+          if(Map.get(attrs, :featured) == true, do: 1, else: 0),
+          Map.get(attrs, :duration_ms),
+          Map.get(attrs, :width),
+          Map.get(attrs, :height),
+          Map.get(attrs, :file_size),
           Map.get(attrs, :original_filename),
           Map.get(attrs, :original_mime_type),
           now
@@ -145,6 +150,17 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
     with_write_repo(database_path, fn ->
       query!("UPDATE media_items SET status = ? WHERE id = ?", [
         status,
+        id
+      ])
+
+      :ok
+    end)
+  end
+
+  def set_featured(database_path, id, featured) when is_boolean(featured) do
+    with_write_repo(database_path, fn ->
+      query!("UPDATE media_items SET featured = ? WHERE id = ? AND kind = 'workshop_moment'", [
+        if(featured, do: 1, else: 0),
         id
       ])
 
@@ -191,7 +207,7 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
   def purge(database_path, id) do
     with_write_repo(database_path, fn ->
       case query!(
-             "SELECT id, kind, status, title, creator_name, show_attribution, filename, mime_type, original_filename, original_mime_type, inserted_at, deleted_at FROM media_items WHERE id = ? AND deleted_at IS NOT NULL",
+             "SELECT id, kind, status, title, creator_name, show_attribution, filename, mime_type, featured, duration_ms, width, height, file_size, original_filename, original_mime_type, inserted_at, deleted_at FROM media_items WHERE id = ? AND deleted_at IS NOT NULL",
              [id]
            ).rows do
         [row] ->
@@ -253,6 +269,11 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
       show_attribution INTEGER NOT NULL DEFAULT 0,
       filename TEXT NOT NULL,
       mime_type TEXT NOT NULL,
+      featured INTEGER NOT NULL DEFAULT 0,
+      duration_ms INTEGER,
+      width INTEGER,
+      height INTEGER,
+      file_size INTEGER,
       original_filename TEXT,
       original_mime_type TEXT,
       inserted_at TEXT NOT NULL,
@@ -284,6 +305,20 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
 
     unless Enum.any?(columns, fn [_cid, name | _rest] -> name == "original_mime_type" end) do
       add_column("original_mime_type", "TEXT")
+    end
+
+    unless Enum.any?(columns, fn [_cid, name | _rest] -> name == "featured" end) do
+      add_column("featured", "INTEGER NOT NULL DEFAULT 0")
+    end
+
+    for {name, type} <- [
+          {"duration_ms", "INTEGER"},
+          {"width", "INTEGER"},
+          {"height", "INTEGER"},
+          {"file_size", "INTEGER"}
+        ],
+        not Enum.any?(columns, fn [_cid, column | _rest] -> column == name end) do
+      add_column(name, type)
     end
 
     query!("UPDATE media_items SET status = 'published' WHERE status = 'approved'")
@@ -337,6 +372,11 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
          show,
          filename,
          mime_type,
+         featured,
+         duration_ms,
+         width,
+         height,
+         file_size,
          original_filename,
          original_mime_type,
          inserted_at,
@@ -351,6 +391,11 @@ defmodule WakeCanvas.Experience.LivingGallery.Store do
       show_attribution: show in [true, 1, "1"],
       filename: filename,
       mime_type: mime_type,
+      featured: featured in [true, 1, "1", "TRUE", "true"],
+      duration_ms: duration_ms,
+      width: width,
+      height: height,
+      file_size: file_size,
       original_filename: original_filename,
       original_mime_type: original_mime_type,
       inserted_at: parse_datetime(inserted_at),

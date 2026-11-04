@@ -31,7 +31,7 @@ the target:
 
 ```powershell
 .\scripts\build-windows-release.ps1 -Force
-.\scripts\smoke-windows-release.ps1 -Archive .\dist\wakecanvas-0.1.0-windows-x64.zip
+.\scripts\smoke-windows-release.ps1 -Archive .\dist\wakecanvas-0.2.0-windows-x64.zip
 ```
 
 The ZIP is a portable installation. Its root contains only safe user-facing
@@ -52,7 +52,7 @@ Build and test on the target architecture:
 
 ```sh
 sh ./scripts/build-linux-release.sh --force
-sh ./scripts/smoke-linux-release.sh --archive ./dist/wakecanvas-0.1.0-linux-x64.tar.gz
+sh ./scripts/smoke-linux-release.sh --archive ./dist/wakecanvas-0.2.0-linux-x64.tar.gz
 ```
 
 The build script maps `x86_64` to `linux-x64` and `aarch64` to `linux-arm64` and

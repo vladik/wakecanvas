@@ -9,6 +9,7 @@ defmodule WakeCanvas.Experience.LivingGallery.Config do
     "presentation_label" => "Living Gallery",
     "presentation_title" => "",
     "presentation_description" => "",
+    "featured_interval_seconds" => 180,
     "display_variant" => "living-collage"
   }
 

@@ -29,6 +29,15 @@ larger featured artwork. It shows the artwork title before optional creator
 attribution and uses the instance's editable presentation label, public name,
 and description rather than coupling wall text to the internal instance name.
 
+**Living Spiral — Featured Moments** extends that focus treatment with operator-selected
+Workshop Moments. Photographs and paused video first frames travel in the outer
+memory orbit. Featured moments use the same spatial zoom and caption treatment as
+artwork; featured MP4 or WebM videos begin playing silently after reaching the
+center and return to their orbit at the natural end. Portrait, landscape, and square
+media retain their complete aspect ratio while the rest of the spiral continues to
+move. Videos are stored locally below the instance deletion boundary and use
+byte-range delivery from the kiosk.
+
 The PixiJS `living-collage` entry point is presented as **Living Film Collage**.
 Workshop moments continuously develop and travel through layered film ribbons,
 while background-removed artwork floats freely above them. Every ten seconds one
@@ -62,7 +71,8 @@ Compiled package assets are written to `priv/static/`. These commands run on a
 developer or CI machine; the installed kiosk only serves the resulting files.
 
 The current vertical includes independently compiled display, artwork intake,
-Workshop Moments upload, and review LiveViews. Each platform instance receives a
+Workshop Moments photo/video upload, and review LiveViews. Operators select which
+moments may enter the featured-Moment sequence. Each platform instance receives a
 separate Experience SQLite database and media directory. Approving a submission
 broadcasts through PubSub and refreshes connected walls.
 

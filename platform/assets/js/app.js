@@ -240,11 +240,94 @@ const ExperienceMediaInput = {
   },
 }
 
+const ExperienceVideoInput = {
+  mounted() {
+    this.source = this.el.querySelector("[data-video-source]")
+    this.preview = this.el.querySelector("[data-video-preview]")
+    this.status = this.el.querySelector("[data-video-status]")
+    this.duration = this.el.querySelector("[data-video-duration]")
+    this.width = this.el.querySelector("[data-video-width]")
+    this.height = this.el.querySelector("[data-video-height]")
+    this.size = this.el.querySelector("[data-video-size]")
+    this.objectUrl = null
+
+    this.resetMetadata = () => {
+      this.duration.value = ""
+      this.width.value = ""
+      this.height.value = ""
+      this.size.value = ""
+    }
+
+    this.onLoadedMetadata = () => {
+      const width = Number(this.preview.videoWidth || 0)
+      const height = Number(this.preview.videoHeight || 0)
+      const seconds = Number(this.preview.duration || 0)
+      this.duration.value = Number.isFinite(seconds) ? String(Math.max(1, Math.round(seconds * 1000))) : ""
+      this.width.value = String(width)
+      this.height.value = String(height)
+      this.status.textContent = "Video metadata loaded. Checking that this kiosk can decode the first frame…"
+    }
+
+    this.onLoadedData = () => {
+      const width = Number(this.preview.videoWidth || 0)
+      const height = Number(this.preview.videoHeight || 0)
+      const seconds = Number(this.preview.duration || 0)
+      const orientation = width === height ? "square" : width > height ? "landscape" : "portrait"
+      this.source.setCustomValidity("")
+      this.preview.hidden = false
+      this.status.textContent = `${orientation[0].toUpperCase()}${orientation.slice(1)} video · ${width}×${height} · ${formatDuration(seconds)} · ready to upload.`
+    }
+
+    this.onError = () => {
+      this.resetMetadata()
+      this.source.setCustomValidity("This kiosk browser cannot play this video.")
+      this.preview.hidden = true
+      this.status.textContent = "This kiosk browser cannot play this video. Convert it to an H.264 MP4 and try again."
+    }
+
+    this.onChange = event => {
+      const file = event.target.files?.[0]
+      if (!file) return
+      this.resetMetadata()
+      this.size.value = String(file.size)
+      this.source.setCustomValidity("Wait for this kiosk to finish checking the video.")
+      if (this.objectUrl) URL.revokeObjectURL(this.objectUrl)
+      this.objectUrl = URL.createObjectURL(file)
+      this.status.textContent = "Checking video compatibility on this device…"
+      this.preview.src = this.objectUrl
+      this.preview.load()
+    }
+
+    this.source.addEventListener("change", this.onChange)
+    this.preview.addEventListener("loadedmetadata", this.onLoadedMetadata)
+    this.preview.addEventListener("loadeddata", this.onLoadedData)
+    this.preview.addEventListener("error", this.onError)
+  },
+
+  destroyed() {
+    this.source?.removeEventListener("change", this.onChange)
+    this.preview?.removeEventListener("loadedmetadata", this.onLoadedMetadata)
+    this.preview?.removeEventListener("loadeddata", this.onLoadedData)
+    this.preview?.removeEventListener("error", this.onError)
+    this.preview?.pause()
+    this.preview?.removeAttribute("src")
+    if (this.objectUrl) URL.revokeObjectURL(this.objectUrl)
+  },
+}
+
+function formatDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "unknown duration"
+  const rounded = Math.round(seconds)
+  const minutes = Math.floor(rounded / 60)
+  const remainder = rounded % 60
+  return `${minutes}:${String(remainder).padStart(2, "0")}`
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, ExperienceRenderer, ExperienceMediaInput},
+  hooks: {...colocatedHooks, ExperienceRenderer, ExperienceMediaInput, ExperienceVideoInput},
 })
 
 // Show progress bar on live navigation and form submits

@@ -17,11 +17,11 @@ On an x64 or ARM64 Linux build machine:
 ```sh
 sh ./scripts/build-linux-release.sh --force
 sh ./scripts/smoke-linux-release.sh \
-  --archive ./dist/wakecanvas-0.1.0-linux-x64.tar.gz
+  --archive ./dist/wakecanvas-0.2.0-linux-x64.tar.gz
 ```
 
 On ARM64, the builder automatically names the artifact
-`wakecanvas-0.1.0-linux-arm64.tar.gz`. The native smoke test extracts a clean
+`wakecanvas-0.2.0-linux-arm64.tar.gz`. The native smoke test extracts a clean
 installation, initializes its data directory, runs migrations, verifies database
 and cookie-secret creation, stops and restarts the VM, and confirms that its secret
 survives the restart.
@@ -57,7 +57,7 @@ model before calling that hardware production-ready.
 ## Install and run
 
 ```sh
-tar -xzf wakecanvas-0.1.0-linux-x64.tar.gz
+tar -xzf wakecanvas-0.2.0-linux-x64.tar.gz
 cd WakeCanvas
 ./start-wakecanvas.sh
 ```

@@ -37,7 +37,7 @@ Example:
 ```json
 {
   "status": "warning",
-  "platform_version": "0.1.0",
+  "platform_version": "0.2.0",
   "uptime_seconds": 7200,
   "checks": [
     {"id": "disk_capacity", "status": "warning", "message": "88% used; 4.2 GB free."}

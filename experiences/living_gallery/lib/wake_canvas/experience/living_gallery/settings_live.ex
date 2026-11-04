@@ -46,6 +46,7 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
       "presentation_label" => bounded_text(settings["presentation_label"], 80),
       "presentation_title" => bounded_text(settings["presentation_title"], 100),
       "presentation_description" => bounded_text(settings["presentation_description"], 160),
+      "featured_interval_seconds" => featured_interval(settings["featured_interval_seconds"]),
       "display_variant" => socket.assigns.selected_variant
     }
 
@@ -81,51 +82,71 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
         <div :if={@saved} class="lg-ui-notice lg-ui-notice--success" style="margin-top:2rem;padding:1rem 1.2rem;border-radius:14px;background:#dff3e5;color:#235934">Settings saved.</div>
 
         <form phx-submit="save" class="lg-ui-card lg-ui-form" style="margin-top:2rem;display:grid;gap:1rem;padding:clamp(1.2rem,4vw,2.2rem);border-radius:24px;background:#fff;box-shadow:0 18px 55px #4b382315">
-          <fieldset style="border:0;padding:0;margin:0 0 1rem">
-            <legend style="font:600 1.3rem Georgia,serif;margin-bottom:.35rem">Wall identity</legend>
-            <p style="margin:.2rem 0 1rem;color:#74695b">
-              All visitor-facing text shown by supported display variants. The internal workshop name is managed separately.
+          <fieldset style="display:grid;gap:1.4rem;border:0;padding:0;margin:0 0 1rem">
+            <legend style="font:600 1.3rem Georgia,serif;margin-bottom:.35rem">Wall presentation</legend>
+            <p style="margin:0;color:#74695b;line-height:1.5">
+              Set the visitor-facing words shown by supported variants and control how often featured Workshop Moments appear.
             </p>
-            <div style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
-              <label style="display:grid;gap:.4rem;font-weight:600">
+            <div style="display:grid;gap:1.25rem;grid-template-columns:1fr">
+              <label style="display:grid;gap:.45rem;font-weight:600">
                 Presentation label
                 <input
                   name="settings[presentation_label]"
                   value={@config["presentation_label"]}
                   maxlength="80"
                   placeholder="Living Gallery"
-                  style="padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit"
+                  style="width:100%;box-sizing:border-box;padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit"
                 />
                 <small style="color:#74695b;font-weight:400;line-height:1.4">
                   Optional event, venue, organization, or location shown above the presentation name.
                 </small>
               </label>
-              <label style="display:grid;gap:.4rem;font-weight:600">
+              <label style="display:grid;gap:.45rem;font-weight:600">
                 Presentation name
                 <input
                   name="settings[presentation_title]"
                   value={@config["presentation_title"]}
                   maxlength="100"
                   placeholder="Workshop Moments"
-                  style="padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit"
+                  style="width:100%;box-sizing:border-box;padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit"
                 />
                 <small style="color:#74695b;font-weight:400;line-height:1.4">
                   Optional public name shown on the wall. This does not rename the workshop in WakeCanvas.
                 </small>
               </label>
-              <label style="display:grid;gap:.4rem;font-weight:600">
+              <label style="display:grid;gap:.45rem;font-weight:600">
                 Presentation description
-                <input
+                <textarea
                   name="settings[presentation_description]"
-                  value={@config["presentation_description"]}
                   maxlength="160"
+                  rows="3"
                   placeholder="Optional short description"
-                  style="padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit"
-                />
+                  style="width:100%;box-sizing:border-box;resize:vertical;padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit;line-height:1.45"
+                >{@config["presentation_description"]}</textarea>
                 <small style="color:#74695b;font-weight:400;line-height:1.4">
                   A short optional line shown below the presentation name when a variant supports it.
                 </small>
               </label>
+
+              <div style="height:1px;background:#e7e0d6;margin:.15rem 0"></div>
+
+              <div style="display:grid;gap:1rem;padding:1.1rem;border:1px solid #ddd4c7;border-radius:14px;background:#faf8f4">
+                <div>
+                  <h2 style="font:600 1.08rem Georgia,serif;margin:0 0 .35rem">Featured Moments</h2>
+                  <p style="margin:0;color:#74695b;line-height:1.5">
+                    Featured photos and videos can move from the rotating gallery into the main focus. Photos remain briefly; videos play silently to their natural end.
+                  </p>
+                </div>
+                <label style="display:grid;gap:.45rem;font-weight:600">
+                  Time between featured Moments
+                  <select name="settings[featured_interval_seconds]" style="width:100%;box-sizing:border-box;padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit;background:white">
+                    <option :for={{label, seconds} <- featured_interval_options()} value={seconds} selected={@config["featured_interval_seconds"] == seconds}>{label}</option>
+                  </select>
+                  <small style="color:#74695b;font-weight:400;line-height:1.4">
+                    The next featured Moment starts after this amount of regular gallery time.
+                  </small>
+                </label>
+              </div>
             </div>
           </fieldset>
 
@@ -192,4 +213,28 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
     do: value |> String.trim() |> String.slice(0, max)
 
   defp bounded_text(_value, _max), do: ""
+
+  defp featured_interval(value) do
+    case Integer.parse(to_string(value || "")) do
+      {seconds, ""} when seconds in [60, 180, 300, 600, 900, 1_200, 1_800, 2_700, 3_600] ->
+        seconds
+
+      _ ->
+        180
+    end
+  end
+
+  defp featured_interval_options do
+    [
+      {"1 minute", 60},
+      {"3 minutes", 180},
+      {"5 minutes", 300},
+      {"10 minutes", 600},
+      {"15 minutes", 900},
+      {"20 minutes", 1_200},
+      {"30 minutes", 1_800},
+      {"45 minutes", 2_700},
+      {"1 hour", 3_600}
+    ]
+  end
 end

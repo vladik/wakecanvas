@@ -59,8 +59,25 @@ defmodule WakeCanvas.Experience.LivingGallery.RendererDisplayLive do
   defp load_items(socket) do
     items = Store.list(socket.assigns.database_path, "published")
 
+    moments =
+      items
+      |> Enum.filter(&(&1.kind == "workshop_moment" and image?(&1)))
+      |> Enum.take(12)
+
+    cinema_moments =
+      items
+      |> Enum.filter(&(&1.kind == "workshop_moment"))
+      |> Enum.take(16)
+
+    featured_moments =
+      items
+      |> Enum.filter(&(&1.kind == "workshop_moment" and &1.featured))
+      |> Enum.take(24)
+
     assign(socket,
-      moments: Enum.filter(items, &(&1.kind == "workshop_moment")) |> Enum.take(12),
+      moments: moments,
+      cinema_moments: cinema_moments,
+      featured_moments: featured_moments,
       artworks: Enum.filter(items, &(&1.kind == "artwork")) |> Enum.take(40),
       messages: Store.list_messages(socket.assigns.database_path, "published") |> Enum.take(30)
     )
@@ -94,8 +111,13 @@ defmodule WakeCanvas.Experience.LivingGallery.RendererDisplayLive do
       presentationLabel: assigns.config["presentation_label"],
       presentationTitle: assigns.config["presentation_title"],
       presentationDescription: assigns.config["presentation_description"],
+      featuredIntervalSeconds: assigns.config["featured_interval_seconds"] || 180,
       variant: assigns.display_variant,
       moments: Enum.map(assigns.moments, &serialize_item(&1, assigns.media_base_url)),
+      cinemaMoments:
+        Enum.map(assigns.cinema_moments, &serialize_item(&1, assigns.media_base_url)),
+      featuredMoments:
+        Enum.map(assigns.featured_moments, &serialize_item(&1, assigns.media_base_url)),
       artworks: Enum.map(assigns.artworks, &serialize_item(&1, assigns.media_base_url)),
       messages: Enum.map(assigns.messages, &serialize_message/1)
     }
@@ -107,9 +129,17 @@ defmodule WakeCanvas.Experience.LivingGallery.RendererDisplayLive do
       title: item.title,
       creatorName: item.creator_name,
       showAttribution: item.show_attribution,
-      url: "#{media_base_url}/#{item.filename}"
+      url: "#{media_base_url}/#{item.filename}",
+      mediaType: if(video?(item), do: "video", else: "image"),
+      mimeType: item.mime_type,
+      durationMs: item.duration_ms,
+      width: item.width,
+      height: item.height
     }
   end
+
+  defp image?(item), do: String.starts_with?(item.mime_type || "", "image/")
+  defp video?(item), do: String.starts_with?(item.mime_type || "", "video/")
 
   defp serialize_message(message) do
     %{

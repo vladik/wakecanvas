@@ -75,6 +75,8 @@ esac
 
 VERSION=$(sed -n 's/.*version: "\([^"]*\)".*/\1/p' "$REPO_ROOT/platform/mix.exs" | head -n 1)
 [ -n "$VERSION" ] || { echo "Could not read the platform version." >&2; exit 1; }
+LIVING_GALLERY_VERSION=$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$REPO_ROOT/experiences/living_gallery/wakecanvas-experience.json" | head -n 1)
+[ -n "$LIVING_GALLERY_VERSION" ] || { echo "Could not read the Living Gallery version." >&2; exit 1; }
 
 mkdir -p "$REPO_ROOT/.tmp" "$OUTPUT_DIRECTORY"
 STAGING_ROOT=$(mktemp -d "$REPO_ROOT/.tmp/linux-release.XXXXXX")
@@ -143,7 +145,7 @@ done
 install -m 0644 "$REPO_ROOT/packaging/linux/README.txt" "$BUNDLE_ROOT/README.txt"
 install -m 0644 "$REPO_ROOT/packaging/linux/admin-tools/README.txt" "$BUNDLE_ROOT/admin-tools/README.txt"
 
-PACKAGE_PATH="$BUNDLE_ROOT/packages/living-gallery-0.2.0.wakecanvas"
+PACKAGE_PATH="$BUNDLE_ROOT/packages/living-gallery-$LIVING_GALLERY_VERSION.wakecanvas"
 (
   cd "$REPO_ROOT/experiences/living_gallery"
   mix wakecanvas.package --output "$PACKAGE_PATH"
