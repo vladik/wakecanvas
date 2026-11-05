@@ -173,17 +173,19 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
             :if={@kind == "workshop_moment" && @media_type == "video"}
             id="workshop-video-input"
             phx-hook="ExperienceVideoInput"
+            phx-update="ignore"
             style="display:grid;gap:.8rem"
           >
             <label class="lg-ui-dropzone" style="display:grid;gap:.6rem;padding:2.2rem;border:2px dashed #c8bba9;border-radius:16px;background:#faf8f3;font-weight:600;text-align:center;cursor:pointer">
               Choose a video
-              <.live_file_input
-                upload={@uploads.video}
+              <input
                 data-video-source
+                type="file"
                 accept="video/mp4,video/webm"
                 style="width:100%"
               />
             </label>
+            <.live_file_input upload={@uploads.video} style="display:none" />
             <p data-video-status style="margin:0;color:#6c6255" aria-live="polite">
               MP4 or WebM, stored only in this workshop. The kiosk will check compatibility, orientation, and duration. Playback is always silent.
             </p>
@@ -193,6 +195,7 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
               controls
               muted
               playsinline
+              preload="auto"
               style="display:block;max-height:360px;max-width:100%;justify-self:center;background:#08090c"
             >
             </video>
@@ -200,10 +203,10 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
             <input data-video-width type="hidden" name="video[width]" />
             <input data-video-height type="hidden" name="video[height]" />
             <input data-video-size type="hidden" name="video[file_size]" />
-            <p :for={error <- upload_errors(@uploads.video)} style="color:#a52b2b">
-              {Phoenix.Naming.humanize(error)}
-            </p>
           </div>
+          <p :for={error <- upload_errors(@uploads.video)} style="color:#a52b2b">
+            {Phoenix.Naming.humanize(error)}
+          </p>
           <label style="display:grid;gap:.4rem;font-weight:600">Optional title<input name="submission[title]" maxlength="120" style="padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit" /></label>
           <label :if={@kind == "workshop_moment"} style="display:flex;align-items:flex-start;gap:.7rem;padding:.9rem;border:1px solid #d7b889;border-radius:12px;background:#fffaf0;cursor:pointer">
             <input type="checkbox" name="submission[featured]" value="true" style="width:1.2rem;height:1.2rem;margin-top:.1rem" />

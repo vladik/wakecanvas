@@ -15,7 +15,7 @@ defmodule WakeCanvas.Experience.LivingGallery do
     %Definition{
       id: "org.wakecanvas.experience.living-gallery",
       name: "Living Gallery",
-      version: "0.3.0",
+      version: "0.3.1",
       otp_application: :wake_canvas_experience_living_gallery,
       stylesheet: "static/experience.css",
       surfaces: [

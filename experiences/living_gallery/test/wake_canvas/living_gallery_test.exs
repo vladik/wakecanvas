@@ -15,7 +15,7 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
     instance = %WakeCanvas.ExperienceSDK.Instance{
       id: Ecto.UUID.generate(),
       experience_id: "org.wakecanvas.experience.living-gallery",
-      experience_version: "0.3.0",
+      experience_version: "0.3.1",
       name: "Migration test",
       config: %{},
       data_dir: root,
@@ -33,7 +33,7 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
     definition = WakeCanvas.Experience.LivingGallery.definition()
 
     assert definition.id == "org.wakecanvas.experience.living-gallery"
-    assert definition.version == "0.3.0"
+    assert definition.version == "0.3.1"
     assert definition.otp_application == :wake_canvas_experience_living_gallery
     assert :camera in definition.capabilities
     assert :microphone in definition.capabilities

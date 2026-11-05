@@ -250,6 +250,9 @@ const ExperienceVideoInput = {
     this.height = this.el.querySelector("[data-video-height]")
     this.size = this.el.querySelector("[data-video-size]")
     this.objectUrl = null
+    this.sourceFile = null
+    this.uploadStarted = false
+    this.checkTimer = null
 
     this.resetMetadata = () => {
       this.duration.value = ""
@@ -269,6 +272,7 @@ const ExperienceVideoInput = {
     }
 
     this.onLoadedData = () => {
+      window.clearTimeout(this.checkTimer)
       const width = Number(this.preview.videoWidth || 0)
       const height = Number(this.preview.videoHeight || 0)
       const seconds = Number(this.preview.duration || 0)
@@ -276,9 +280,14 @@ const ExperienceVideoInput = {
       this.source.setCustomValidity("")
       this.preview.hidden = false
       this.status.textContent = `${orientation[0].toUpperCase()}${orientation.slice(1)} video · ${width}×${height} · ${formatDuration(seconds)} · ready to upload.`
+      if (!this.uploadStarted && this.sourceFile) {
+        this.uploadStarted = true
+        this.upload("video", [this.sourceFile])
+      }
     }
 
     this.onError = () => {
+      window.clearTimeout(this.checkTimer)
       this.resetMetadata()
       this.source.setCustomValidity("This kiosk browser cannot play this video.")
       this.preview.hidden = true
@@ -288,6 +297,8 @@ const ExperienceVideoInput = {
     this.onChange = event => {
       const file = event.target.files?.[0]
       if (!file) return
+      this.sourceFile = file
+      this.uploadStarted = false
       this.resetMetadata()
       this.size.value = String(file.size)
       this.source.setCustomValidity("Wait for this kiosk to finish checking the video.")
@@ -296,6 +307,8 @@ const ExperienceVideoInput = {
       this.status.textContent = "Checking video compatibility on this device…"
       this.preview.src = this.objectUrl
       this.preview.load()
+      window.clearTimeout(this.checkTimer)
+      this.checkTimer = window.setTimeout(this.onError, 30_000)
     }
 
     this.source.addEventListener("change", this.onChange)
@@ -311,6 +324,8 @@ const ExperienceVideoInput = {
     this.preview?.removeEventListener("error", this.onError)
     this.preview?.pause()
     this.preview?.removeAttribute("src")
+    this.sourceFile = null
+    window.clearTimeout(this.checkTimer)
     if (this.objectUrl) URL.revokeObjectURL(this.objectUrl)
   },
 }
