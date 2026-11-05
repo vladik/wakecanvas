@@ -18,7 +18,8 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
           auto_publish: Config.auto_publish?(session["config"], options.kind),
           retain_originals: Config.retain_originals?(session["config"]),
           media_type: "photo",
-          saved: false
+          saved: false,
+          upload_error: nil
         })
       )
       |> Phoenix.LiveView.allow_upload(:image,
@@ -38,6 +39,18 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
   end
 
   def save(params, socket) do
+    if video_upload_in_progress?(socket) do
+      {:noreply,
+       assign(
+         socket,
+         upload_error: "The video is still uploading. Wait for it to reach 100%, then try again."
+       )}
+    else
+      persist_submission(params, socket)
+    end
+  end
+
+  defp persist_submission(params, socket) do
     metadata = params["submission"] || %{}
     video_metadata = params["video"] || %{}
     media_dir = Path.join(socket.assigns.data_dir, "media")
@@ -89,7 +102,16 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
           :media_changed
         )
 
-    {:noreply, assign(socket, :saved, saved != [])}
+    socket = assign(socket, saved: saved != [], upload_error: nil)
+
+    socket =
+      if saved_videos != [] do
+        Phoenix.LiveView.push_event(socket, "living-gallery:video-saved", %{})
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   def select_media_type(type, socket) when type in ["photo", "video"] do
@@ -99,7 +121,7 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
         "video" -> socket |> cancel_entries(:image) |> cancel_entries(:original)
       end
 
-    {:noreply, assign(socket, media_type: type, saved: false)}
+    {:noreply, assign(socket, media_type: type, saved: false, upload_error: nil)}
   end
 
   def render(assigns) do
@@ -185,7 +207,6 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
                 style="width:100%"
               />
             </label>
-            <.live_file_input upload={@uploads.video} style="display:none" />
             <p data-video-status style="margin:0;color:#6c6255" aria-live="polite">
               MP4 or WebM, stored only in this workshop. The kiosk will check compatibility, orientation, and duration. Playback is always silent.
             </p>
@@ -204,8 +225,26 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
             <input data-video-height type="hidden" name="video[height]" />
             <input data-video-size type="hidden" name="video[file_size]" />
           </div>
+          <.live_file_input
+            :if={@kind == "workshop_moment" && @media_type == "video"}
+            upload={@uploads.video}
+            style="display:none"
+          />
+          <div
+            :for={entry <- if(@kind == "workshop_moment" && @media_type == "video", do: @uploads.video.entries, else: [])}
+            style="display:grid;gap:.4rem;padding:.8rem 1rem;border-radius:12px;background:#f3efe7;color:#564e44"
+            aria-live="polite"
+          >
+            <span>
+              {if entry.done?, do: "Video upload complete. Ready to save.", else: "Uploading video to this kiosk… #{entry.progress}%"}
+            </span>
+            <progress value={entry.progress} max="100" style="width:100%"></progress>
+          </div>
           <p :for={error <- upload_errors(@uploads.video)} style="color:#a52b2b">
             {Phoenix.Naming.humanize(error)}
+          </p>
+          <p :if={@upload_error} style="margin:0;color:#a52b2b;font-weight:600" role="alert">
+            {@upload_error}
           </p>
           <label style="display:grid;gap:.4rem;font-weight:600">Optional title<input name="submission[title]" maxlength="120" style="padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit" /></label>
           <label :if={@kind == "workshop_moment"} style="display:flex;align-items:flex-start;gap:.7rem;padding:.9rem;border:1px solid #d7b889;border-radius:12px;background:#fffaf0;cursor:pointer">
@@ -219,7 +258,15 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
           </label>
           <label :if={@kind == "artwork"} style="display:grid;gap:.4rem;font-weight:600">Optional creator name<input name="submission[creator_name]" maxlength="80" style="padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit" /></label>
           <label :if={@kind == "artwork"} style="display:flex;gap:.65rem;align-items:center;color:#564e44"><input type="checkbox" name="submission[show_attribution]" value="true" /> Show the creator name on the wall</label>
-          <button type="submit" style="border:0;border-radius:12px;padding:.9rem 1.2rem;background:#2d5d50;color:white;font-weight:700;font-size:1rem;cursor:pointer">{if @auto_publish, do: "Upload and publish", else: "Upload for review"}</button>
+          <button
+            type="submit"
+            disabled={video_entries_in_progress?(@uploads, @kind, @media_type)}
+            style={if(video_entries_in_progress?(@uploads, @kind, @media_type), do: "border:0;border-radius:12px;padding:.9rem 1.2rem;background:#2d5d50;color:white;font-weight:700;font-size:1rem;cursor:not-allowed;opacity:.55", else: "border:0;border-radius:12px;padding:.9rem 1.2rem;background:#2d5d50;color:white;font-weight:700;font-size:1rem;cursor:pointer")}
+          >
+            {if video_entries_in_progress?(@uploads, @kind, @media_type),
+              do: "Uploading video…",
+              else: if(@auto_publish, do: "Upload and publish", else: "Upload for review")}
+          </button>
         </form>
       </div>
     </main>
@@ -262,11 +309,28 @@ defmodule WakeCanvas.Experience.LivingGallery.UploadLive do
     Phoenix.LiveView.allow_upload(socket, :video,
       accept: ~w(.mp4 .webm),
       max_entries: 1,
-      max_file_size: 500_000_000
+      max_file_size: 500_000_000,
+      auto_upload: true
     )
   end
 
   defp maybe_allow_video(socket, _kind), do: socket
+
+  defp video_upload_in_progress?(
+         %{assigns: %{kind: "workshop_moment", media_type: "video"}} =
+           socket
+       ) do
+    {_completed, in_progress} = Phoenix.LiveView.uploaded_entries(socket, :video)
+    in_progress != []
+  end
+
+  defp video_upload_in_progress?(_socket), do: false
+
+  defp video_entries_in_progress?(uploads, "workshop_moment", "video") do
+    Enum.any?(uploads.video.entries, &(!&1.done?))
+  end
+
+  defp video_entries_in_progress?(_uploads, _kind, _media_type), do: false
 
   defp consume_videos(
          %{assigns: %{kind: "workshop_moment", media_type: "video"}} = socket,

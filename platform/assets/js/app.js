@@ -254,6 +254,23 @@ const ExperienceVideoInput = {
     this.uploadStarted = false
     this.checkTimer = null
 
+    this.clearSelection = statusText => {
+      window.clearTimeout(this.checkTimer)
+      this.preview.pause()
+      this.preview.removeAttribute("src")
+      this.preview.load()
+      this.preview.hidden = true
+      if (this.objectUrl) URL.revokeObjectURL(this.objectUrl)
+      this.objectUrl = null
+      this.sourceFile = null
+      this.uploadStarted = false
+      this.source.value = ""
+      this.source.setCustomValidity("")
+      this.resetMetadata()
+      this.el.closest("form")?.reset()
+      this.status.textContent = statusText
+    }
+
     this.resetMetadata = () => {
       this.duration.value = ""
       this.width.value = ""
@@ -279,7 +296,7 @@ const ExperienceVideoInput = {
       const orientation = width === height ? "square" : width > height ? "landscape" : "portrait"
       this.source.setCustomValidity("")
       this.preview.hidden = false
-      this.status.textContent = `${orientation[0].toUpperCase()}${orientation.slice(1)} video · ${width}×${height} · ${formatDuration(seconds)} · ready to upload.`
+      this.status.textContent = `${orientation[0].toUpperCase()}${orientation.slice(1)} video · ${width}×${height} · ${formatDuration(seconds)} · accepted. Starting upload…`
       if (!this.uploadStarted && this.sourceFile) {
         this.uploadStarted = true
         this.upload("video", [this.sourceFile])
@@ -315,6 +332,9 @@ const ExperienceVideoInput = {
     this.preview.addEventListener("loadedmetadata", this.onLoadedMetadata)
     this.preview.addEventListener("loadeddata", this.onLoadedData)
     this.preview.addEventListener("error", this.onError)
+    this.handleEvent("living-gallery:video-saved", () => {
+      this.clearSelection("Video saved. Choose another video when you are ready.")
+    })
   },
 
   destroyed() {
