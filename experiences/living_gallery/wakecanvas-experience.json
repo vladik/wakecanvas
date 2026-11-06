@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "experienceId": "org.wakecanvas.experience.living-gallery",
   "name": "Living Gallery",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "otpApplication": "wake_canvas_experience_living_gallery",
   "entryModule": "WakeCanvas.Experience.LivingGallery",
   "target": "any",

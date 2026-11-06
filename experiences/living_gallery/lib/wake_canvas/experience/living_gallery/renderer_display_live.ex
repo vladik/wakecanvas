@@ -111,6 +111,7 @@ defmodule WakeCanvas.Experience.LivingGallery.RendererDisplayLive do
       presentationLabel: assigns.config["presentation_label"],
       presentationTitle: assigns.config["presentation_title"],
       presentationDescription: assigns.config["presentation_description"],
+      artworkIntervalSeconds: assigns.config["artwork_interval_seconds"] || 5,
       featuredIntervalSeconds: assigns.config["featured_interval_seconds"] || 180,
       variant: assigns.display_variant,
       moments: Enum.map(assigns.moments, &serialize_item(&1, assigns.media_base_url)),

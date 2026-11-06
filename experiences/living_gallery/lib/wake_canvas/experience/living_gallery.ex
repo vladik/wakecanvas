@@ -15,7 +15,7 @@ defmodule WakeCanvas.Experience.LivingGallery do
     %Definition{
       id: "org.wakecanvas.experience.living-gallery",
       name: "Living Gallery",
-      version: "0.3.1",
+      version: "0.3.2",
       otp_application: :wake_canvas_experience_living_gallery,
       stylesheet: "static/experience.css",
       surfaces: [
@@ -149,6 +149,12 @@ defmodule WakeCanvas.Experience.LivingGallery do
         "presentation_label" => %{type: :string, default: "Living Gallery"},
         "presentation_title" => %{type: :string, default: ""},
         "presentation_description" => %{type: :string, default: ""},
+        "artwork_interval_seconds" => %{
+          type: :integer,
+          default: 5,
+          minimum: 3,
+          maximum: 30
+        },
         "featured_interval_seconds" => %{
           type: :integer,
           default: 180,

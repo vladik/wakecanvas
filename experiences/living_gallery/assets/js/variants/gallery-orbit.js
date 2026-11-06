@@ -5,7 +5,7 @@ import {observeSize} from "./dom.js"
 const TAU = Math.PI * 2
 const ARTWORK_LIMIT = 28
 const MOMENT_LIMIT = 16
-const FEATURE_INTERVAL = 10
+const DEFAULT_ARTWORK_INTERVAL = 5
 const CINEMA_PHOTO_DURATION_MS = 10_000
 const CINEMA_PLAYBACK_TIMEOUT_MS = 15_000
 
@@ -255,6 +255,7 @@ export async function mountWithOptions(container, initial, options = {}) {
   let featureTimer = null
   let featured = null
   let pendingFeatureId = null
+  let featureTransitioning = false
   let context = initial
   let cinemaTimer = null
   let cinemaFinishTimer = null
@@ -266,14 +267,17 @@ export async function mountWithOptions(container, initial, options = {}) {
   let firstRender = true
   let presentationPaused = false
 
-  function track(animation, onComplete) {
+  function track(animation, onComplete, onInterrupt) {
     tweens.add(animation)
     if (presentationPaused) animation.pause()
     animation.eventCallback("onComplete", () => {
       tweens.delete(animation)
       onComplete?.()
     })
-    animation.eventCallback("onInterrupt", () => tweens.delete(animation))
+    animation.eventCallback("onInterrupt", () => {
+      tweens.delete(animation)
+      onInterrupt?.()
+    })
     return animation
   }
 
@@ -308,15 +312,44 @@ export async function mountWithOptions(container, initial, options = {}) {
     track(gsap.to(credit, {autoAlpha: 1, y: 0, duration: 1, delay: 0.35, ease: "power3.out"}))
   }
 
+  function artworkIntervalSeconds() {
+    const seconds = Number(context.artworkIntervalSeconds || DEFAULT_ARTWORK_INTERVAL)
+    return clamp(Number.isFinite(seconds) ? seconds : DEFAULT_ARTWORK_INTERVAL, 3, 30)
+  }
+
+  function artworkTransitionDurations() {
+    const scale = clamp(artworkIntervalSeconds() / 7, 0.45, 1)
+    return {out: 1.5 * scale, in: 2.1 * scale}
+  }
+
   function activateFeature(next) {
-    if (!next || destroyed || cinemaActive) return
+    if (!next || destroyed || cinemaActive) {
+      featureTransitioning = false
+      return
+    }
     featured = next
     showCredit(next)
-    track(gsap.to(next.userData, {heroMix: 1, duration: 2.1, ease: "power3.inOut"}))
+    const durations = artworkTransitionDurations()
+    track(
+      gsap.to(next.userData, {heroMix: 1, duration: durations.in, ease: "power3.inOut"}),
+      () => {
+        featureTransitioning = false
+        const queuedId = pendingFeatureId
+        if (queuedId) {
+          pendingFeatureId = null
+          featureNext(queuedId)
+        }
+      },
+      () => { featureTransitioning = false }
+    )
   }
 
   function featureNext(preferredId) {
     if (cinemaActive) return
+    if (featureTransitioning) {
+      if (preferredId) pendingFeatureId = preferredId
+      return
+    }
     const artworks = [...artworkLayer.children].sort((a, b) => a.userData.slot - b.userData.slot)
     if (!artworks.length || destroyed) return
     let next = preferredId ? artworks.find(artwork => artwork.userData.item.id === preferredId) : null
@@ -325,10 +358,16 @@ export async function mountWithOptions(container, initial, options = {}) {
       next = artworks[(currentIndex + 1) % artworks.length]
     }
     pendingFeatureId = null
+    featureTransitioning = true
+    const durations = artworkTransitionDurations()
     if (featured && featured !== next) {
       const previous = featured
       hideCredit()
-      track(gsap.to(previous.userData, {heroMix: 0, duration: 1.5, ease: "power3.inOut"}), () => activateFeature(next))
+      track(
+        gsap.to(previous.userData, {heroMix: 0, duration: durations.out, ease: "power3.inOut"}),
+        () => activateFeature(next),
+        () => { featureTransitioning = false }
+      )
     } else {
       activateFeature(next)
     }
@@ -341,7 +380,7 @@ export async function mountWithOptions(container, initial, options = {}) {
       return
     }
     if (immediate) featureNext(pendingFeatureId)
-    featureTimer = window.setInterval(() => featureNext(pendingFeatureId), FEATURE_INTERVAL * 1000)
+    featureTimer = window.setInterval(() => featureNext(pendingFeatureId), artworkIntervalSeconds() * 1000)
   }
 
   function cinemaIntervalMs() {
@@ -511,7 +550,9 @@ export async function mountWithOptions(container, initial, options = {}) {
   }
 
   async function renderContent(next) {
+    const previousArtworkInterval = artworkIntervalSeconds()
     context = next
+    const artworkIntervalChanged = artworkIntervalSeconds() !== previousArtworkInterval
     setPresentation(next)
     const current = ++generation
     const regularMoments = (cinema ? next.cinemaMoments || [] : next.moments || []).slice(0, MOMENT_LIMIT)
@@ -547,6 +588,7 @@ export async function mountWithOptions(container, initial, options = {}) {
     } else if (!featured && artworkLayer.children.length) {
       featureNext(pendingFeatureId)
     }
+    if (artworkIntervalChanged && !cinemaActive) armFeatureClock(false)
     if (cinema && !cinemaActive) {
       if (!featureTimer) {
         featureNext()
