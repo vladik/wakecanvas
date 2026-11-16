@@ -46,6 +46,7 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
       "presentation_label" => bounded_text(settings["presentation_label"], 80),
       "presentation_title" => bounded_text(settings["presentation_title"], 100),
       "presentation_description" => bounded_text(settings["presentation_description"], 160),
+      "artwork_interval_seconds" => artwork_interval(settings["artwork_interval_seconds"]),
       "featured_interval_seconds" => featured_interval(settings["featured_interval_seconds"]),
       "display_variant" => socket.assigns.selected_variant
     }
@@ -132,18 +133,36 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
 
               <div style="display:grid;gap:1rem;padding:1.1rem;border:1px solid #ddd4c7;border-radius:14px;background:#faf8f4">
                 <div>
-                  <h2 style="font:600 1.08rem Georgia,serif;margin:0 0 .35rem">Featured Moments</h2>
+                  <h2 style="font:600 1.08rem Georgia,serif;margin:0 0 .35rem">Artwork spotlights</h2>
                   <p style="margin:0;color:#74695b;line-height:1.5">
-                    Featured photos and videos can move from the rotating gallery into the main focus. Photos remain briefly; videos play silently to their natural end.
+                    Choose how long each artwork gets the main spotlight before the next artwork takes its turn.
                   </p>
                 </div>
                 <label style="display:grid;gap:.45rem;font-weight:600">
-                  Time between featured Moments
+                  Artwork spotlight time
+                  <select name="settings[artwork_interval_seconds]" style="width:100%;box-sizing:border-box;padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit;background:white">
+                    <option :for={seconds <- artwork_interval_options()} value={seconds} selected={@config["artwork_interval_seconds"] == seconds}>{seconds} seconds</option>
+                  </select>
+                  <small style="color:#74695b;font-weight:400;line-height:1.4">
+                    This time includes the zoom animation. For example, at 5 seconds a new artwork begins its spotlight every 5 seconds.
+                  </small>
+                </label>
+              </div>
+
+              <div style="display:grid;gap:1rem;padding:1.1rem;border:1px solid #ddd4c7;border-radius:14px;background:#faf8f4">
+                <div>
+                  <h2 style="font:600 1.08rem Georgia,serif;margin:0 0 .35rem">Featured Moments</h2>
+                  <p style="margin:0;color:#74695b;line-height:1.5">
+                    Featured photos and videos occasionally move into the main spotlight. Photos stay for 10 seconds; videos play silently until they finish.
+                  </p>
+                </div>
+                <label style="display:grid;gap:.45rem;font-weight:600">
+                  Wait between featured Moments
                   <select name="settings[featured_interval_seconds]" style="width:100%;box-sizing:border-box;padding:.8rem 1rem;border:1px solid #d6cec2;border-radius:10px;font:inherit;background:white">
                     <option :for={{label, seconds} <- featured_interval_options()} value={seconds} selected={@config["featured_interval_seconds"] == seconds}>{label}</option>
                   </select>
                   <small style="color:#74695b;font-weight:400;line-height:1.4">
-                    The next featured Moment starts after this amount of regular gallery time.
+                    The wait starts after a featured photo or video finishes. For example, at 3 minutes the regular gallery runs for 3 minutes before the next featured Moment begins.
                   </small>
                 </label>
               </div>
@@ -213,6 +232,15 @@ defmodule WakeCanvas.Experience.LivingGallery.SettingsLive do
     do: value |> String.trim() |> String.slice(0, max)
 
   defp bounded_text(_value, _max), do: ""
+
+  defp artwork_interval(value) do
+    case Integer.parse(to_string(value || "")) do
+      {seconds, ""} when seconds in [3, 4, 5, 7, 10, 15, 20, 30] -> seconds
+      _ -> 5
+    end
+  end
+
+  defp artwork_interval_options, do: [3, 4, 5, 7, 10, 15, 20, 30]
 
   defp featured_interval(value) do
     case Integer.parse(to_string(value || "")) do

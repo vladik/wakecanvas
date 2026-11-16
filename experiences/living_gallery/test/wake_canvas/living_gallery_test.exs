@@ -15,7 +15,7 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
     instance = %WakeCanvas.ExperienceSDK.Instance{
       id: Ecto.UUID.generate(),
       experience_id: "org.wakecanvas.experience.living-gallery",
-      experience_version: "0.3.0",
+      experience_version: "0.3.2",
       name: "Migration test",
       config: %{},
       data_dir: root,
@@ -33,7 +33,7 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
     definition = WakeCanvas.Experience.LivingGallery.definition()
 
     assert definition.id == "org.wakecanvas.experience.living-gallery"
-    assert definition.version == "0.3.0"
+    assert definition.version == "0.3.2"
     assert definition.otp_application == :wake_canvas_experience_living_gallery
     assert :camera in definition.capabilities
     assert :microphone in definition.capabilities
@@ -57,6 +57,9 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
              "Living Spiral — Featured Moments"
 
     assert definition.config_schema["featured_interval_seconds"].maximum == 3_600
+    assert definition.config_schema["artwork_interval_seconds"].default == 5
+    assert definition.config_schema["artwork_interval_seconds"].minimum == 3
+    assert definition.config_schema["artwork_interval_seconds"].maximum == 30
 
     assert Enum.map(definition.display_variants, & &1.id) == [
              "living-collage",
@@ -84,6 +87,7 @@ defmodule WakeCanvas.Experience.LivingGalleryTest do
     assert Config.with_defaults(%{})["presentation_label"] == "Living Gallery"
     assert Config.with_defaults(%{})["presentation_title"] == ""
     assert Config.with_defaults(%{})["presentation_description"] == ""
+    assert Config.with_defaults(%{})["artwork_interval_seconds"] == 5
     assert Config.with_defaults(%{})["featured_interval_seconds"] == 180
   end
 end
