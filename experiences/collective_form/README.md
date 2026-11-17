@@ -8,6 +8,17 @@ moves contributions on a virtual table. A future camera adapter will feed the sa
 accepted table-state model, so display variants do not depend on how positions were
 observed.
 
+The optional **Growing Mycelium — Creature Reveals** variant shares the same
+accepted table state and renderer core. It periodically performs reversible animal
+transformations without changing the stored network. A future local-AI service can
+replace its deterministic creature selection; the original variant remains
+available without reveals.
+
+Creature SVGs, feature landmarks, lightweight rigs, and reusable animation logic
+belong to the Collective Form Experience under `assets/js/creatures/` and
+`assets/svg/creatures/`. Variants opt into that Experience-level subsystem; the
+Platform and Experience SDK do not own or serve a shared creature runtime.
+
 ## Operator model
 
 - **Placement source — Operator placement:** the operator adds, positions, moves,

@@ -17,7 +17,7 @@ defmodule WakeCanvas.Experience.CollectiveForm do
     %Definition{
       id: "org.wakecanvas.experience.collective-form",
       name: "Collective Form",
-      version: "0.1.0",
+      version: "0.2.0",
       otp_application: :wake_canvas_experience_collective_form,
       stylesheet: "static/experience.css",
       surfaces: [
@@ -51,6 +51,13 @@ defmodule WakeCanvas.Experience.CollectiveForm do
           description:
             "A living network finds each contribution and weaves it into the collective organism.",
           entrypoint: "static/variants/growing-mycelium.js"
+        },
+        %DisplayVariant{
+          id: "growing-mycelium-creature-reveals",
+          label: "Growing Mycelium — Creature Reveals",
+          description:
+            "The living network periodically transforms into a creature, then dissolves back into the collective organism.",
+          entrypoint: "static/variants/growing-mycelium-creature-reveals.js"
         }
       ],
       config_schema: %{
@@ -62,7 +69,7 @@ defmodule WakeCanvas.Experience.CollectiveForm do
         "display_variant" => %{
           type: :enum,
           default: "growing-mycelium",
-          values: ["growing-mycelium"]
+          values: ["growing-mycelium", "growing-mycelium-creature-reveals"]
         }
       }
     }
