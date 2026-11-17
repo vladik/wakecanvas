@@ -1,0 +1,59 @@
+{
+  "browser": {
+    "renderers": "static/variants/*.js",
+    "stylesheet": "static/experience.css"
+  },
+  "capabilities": [],
+  "configSchema": {
+    "display_variant": {
+      "default": "growing-mycelium",
+      "type": "enum",
+      "values": ["growing-mycelium"]
+    },
+    "placement_source": {
+      "default": "operator",
+      "type": "enum",
+      "values": ["operator", "camera"]
+    }
+  },
+  "defaultDisplayVariant": "growing-mycelium",
+  "displayVariants": [
+    {
+      "description": "A living network finds each contribution and weaves it into the collective organism.",
+      "entrypoint": "static/variants/growing-mycelium.js",
+      "id": "growing-mycelium",
+      "label": "Growing Mycelium"
+    }
+  ],
+  "elixirRequirement": ">= 1.20.0 and < 2.0.0",
+  "entryModule": "WakeCanvas.Experience.CollectiveForm",
+  "experienceId": "org.wakecanvas.experience.collective-form",
+  "manifestVersion": 1,
+  "name": "Collective Form",
+  "otpApplication": "wake_canvas_experience_collective_form",
+  "otpRequirement": ">= 29.0.0 and < 30.0.0",
+  "platformRequirement": ">= 0.2.1 and < 1.0.0",
+  "sdkRequirement": ">= 0.1.0 and < 1.0.0",
+  "surfaces": [
+    {
+      "id": "display",
+      "module": "WakeCanvas.Experience.CollectiveForm.DisplayLive",
+      "path": "display",
+      "role": "display"
+    },
+    {
+      "id": "contribute",
+      "module": "WakeCanvas.Experience.CollectiveForm.ContributionLive",
+      "path": "contribute",
+      "role": "primary-intake"
+    },
+    {
+      "id": "table",
+      "module": "WakeCanvas.Experience.CollectiveForm.TableLive",
+      "path": "table",
+      "role": "operator"
+    }
+  ],
+  "target": "any",
+  "version": "0.1.0"
+}

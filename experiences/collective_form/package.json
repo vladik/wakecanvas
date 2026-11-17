@@ -1,0 +1,8 @@
+{
+  "name": "@wakecanvas/experience-collective-form-assets",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pixi.js": "^8.18.1"
+  }
+}
