@@ -8,7 +8,7 @@
     "display_variant": {
       "default": "growing-mycelium",
       "type": "enum",
-      "values": ["growing-mycelium"]
+      "values": ["growing-mycelium", "growing-mycelium-creature-reveals"]
     },
     "placement_source": {
       "default": "operator",
@@ -23,6 +23,12 @@
       "entrypoint": "static/variants/growing-mycelium.js",
       "id": "growing-mycelium",
       "label": "Growing Mycelium"
+    },
+    {
+      "description": "The living network periodically transforms into a creature, then dissolves back into the collective organism.",
+      "entrypoint": "static/variants/growing-mycelium-creature-reveals.js",
+      "id": "growing-mycelium-creature-reveals",
+      "label": "Growing Mycelium — Creature Reveals"
     }
   ],
   "elixirRequirement": ">= 1.20.0 and < 2.0.0",
@@ -55,5 +61,5 @@
     }
   ],
   "target": "any",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

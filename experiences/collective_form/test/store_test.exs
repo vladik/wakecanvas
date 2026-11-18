@@ -215,4 +215,38 @@ defmodule WakeCanvas.Experience.CollectiveForm.StoreTest do
     assert %{cycle_id: new_cycle, contributions: [], connections: []} = Store.snapshot(path)
     assert new_cycle != old_cycle
   end
+
+  test "startup maintenance compacts retired history without changing active state", %{
+    path: path
+  } do
+    for title <- ["One", "Two", "Three", "Four"] do
+      assert :ok = Store.add_contribution(path, %{"title" => title})
+    end
+
+    [one, two, three, four] = Store.snapshot(path).contributions
+    Store.place_contribution(path, one.id, 0.2, 0.5)
+    Store.place_contribution(path, two.id, 0.4, 0.5)
+    Store.place_contribution(path, three.id, 0.6, 0.5)
+    Store.place_contribution(path, four.id, 0.8, 0.5)
+
+    future = DateTime.add(DateTime.utc_now(), 30, :minute)
+
+    Enum.each(1..30, fn step ->
+      Store.evolve(path, DateTime.add(future, step * 30, :minute))
+    end)
+
+    before = Store.snapshot(path)
+
+    result =
+      Store.maintain(path,
+        retired_threshold: -1,
+        database_threshold: 1_000_000_000,
+        completed_cycles_to_keep: 10
+      )
+
+    assert result.compacted?
+    assert result.retired_deleted > 0
+    assert result.retired_after <= 6
+    assert Store.snapshot(path) == before
+  end
 end

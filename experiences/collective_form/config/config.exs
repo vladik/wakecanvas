@@ -8,9 +8,11 @@ config :esbuild,
   collective_form: [
     args: ~w(
       js/variants/growing-mycelium.js
+      js/variants/growing-mycelium-creature-reveals.js
       --bundle
       --format=esm
       --target=es2022
+      --loader:.svg=text
       --outdir=../priv/static/variants
     ),
     cd: Path.expand("../assets", __DIR__),

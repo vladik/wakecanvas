@@ -8,6 +8,17 @@ moves contributions on a virtual table. A future camera adapter will feed the sa
 accepted table-state model, so display variants do not depend on how positions were
 observed.
 
+The optional **Growing Mycelium — Creature Reveals** variant shares the same
+accepted table state and renderer core. It periodically performs reversible animal
+transformations without changing the stored network. A future local-AI service can
+replace its deterministic creature selection; the original variant remains
+available without reveals.
+
+Creature SVGs, feature landmarks, lightweight rigs, and reusable animation logic
+belong to the Collective Form Experience under `assets/js/creatures/` and
+`assets/svg/creatures/`. Variants opt into that Experience-level subsystem; the
+Platform and Experience SDK do not own or serve a shared creature runtime.
+
 ## Operator model
 
 - **Placement source — Operator placement:** the operator adds, positions, moves,
@@ -21,6 +32,15 @@ observed.
 Photographs are optional. Position, approximate size, and optional colour are
 enough for the table projection; photographs can later support the wall display
 and cycle archive.
+
+## Startup maintenance
+
+Before its first evolution tick, an active instance checks its own SQLite data.
+When retired history exceeds 2,000 rows or live database pages exceed 25 MB, it
+keeps the newest retired route per node pair and removes older duplicates. It also
+retains the 10 newest completed cycles. Active routes, contributions, and the
+current cycle are never removed. SQLite reuses freed pages; startup maintenance
+does not run `VACUUM` or interrupt a running workshop.
 
 ## Development
 

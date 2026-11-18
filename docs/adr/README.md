@@ -6,6 +6,7 @@
 - [ADR-0004: Separate Experience packages from instances](0004-experience-instances.md)
 - [ADR-0005: Instance deletion and package uninstall](0005-instance-deletion.md)
 - [ADR-0006: UUID Experience instance identity](0006-uuid-instance-identity.md)
+- [ADR-0007: Optional platform services for shared local capabilities](0007-optional-platform-services.md)
 
 Add an ADR when a change alters a durable boundary, package contract, deployment
 model, storage ownership, or trust model.

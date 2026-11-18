@@ -1,6 +1,10 @@
 import {Application, Container, Graphics} from "pixi.js"
 
 export async function mount(container, initialSnapshot) {
+  return mountMycelium(container, initialSnapshot)
+}
+
+export async function mountMycelium(container, initialSnapshot, options = {}) {
   const app = new Application()
   await app.init({resizeTo: container, antialias: true, background: "#050806", resolution: Math.min(devicePixelRatio || 1, 2)})
   container.replaceChildren(app.canvas)
@@ -15,6 +19,10 @@ export async function mount(container, initialSnapshot) {
   living.addChild(lifeGraphic)
 
   let snapshot = initialSnapshot
+  const revealMode = options.revealMode || "none"
+  const revealController = options.createReveal
+    ? options.createReveal({app, roots, nodes, living})
+    : null
   let destroyed = false
   let needsRender = true
   let retiringConnections = []
@@ -105,9 +113,14 @@ export async function mount(container, initialSnapshot) {
     drawResourceFlow(lifeGraphic, app, placed, snapshot.connections || [], now, serverClockOffset)
   }
 
-  app.ticker.add(() => { render(); renderLiving() })
+  app.ticker.add(() => {
+    render()
+    renderLiving()
+    revealController?.tick(snapshot)
+  })
 
   return {
+    revealMode,
     update(next) {
       const nextIds = new Set((next.connections || []).map(edge => edge.id))
       const previousNodes = new Map((snapshot.contributions || []).map(item => [item.id, item]))
@@ -129,14 +142,17 @@ export async function mount(container, initialSnapshot) {
       snapshot = next
       serverClockOffset = Number(next.serverNow || Date.now()) - Date.now()
       needsRender = true
+      revealController?.update(next)
     },
     resize() {
       app.resize()
       drawAmbience()
       needsRender = true
+      revealController?.resize()
     },
     destroy() {
       destroyed = true
+      revealController?.destroy()
       app.destroy(true, {children: true})
     },
   }
