@@ -11,7 +11,7 @@ import {
   svgCreatureNodeTarget as templateNodeTarget,
 } from "../../creatures/svg-creatures.js"
 
-const CREATURES = ["pigeon", "rabbit", "fish", "octopus"]
+const CREATURES = ["fish", "octopus", "jellyfish", "manta", "starfish"]
 const FIRST_REVEAL_DELAY_MS = 30_000
 const REVEAL_INTERVAL_MS = 35_000
 const ENTER_DURATION_MS = 7_000
@@ -222,6 +222,12 @@ function creatureTarget(creature, point, index, count, width, height) {
       return butterflyTarget(point, center, aspect, jitter)
     case "fish":
       return fishTarget(point, center, aspect, jitter)
+    case "jellyfish":
+      return jellyfishTarget(point, center, aspect, jitter)
+    case "manta":
+      return mantaTarget(point, center, aspect, jitter)
+    case "starfish":
+      return starfishTarget(point, center, aspect, jitter)
     case "pigeon":
       return pigeonTarget(point, center, aspect, jitter)
     case "rabbit":
@@ -285,6 +291,53 @@ function octopusTarget({u, v}, center, scale, jitter) {
   }
 }
 
+function jellyfishTarget({u, v}, center, scale, jitter) {
+  if (v < .38) {
+    const horizontal = (u - .5) * 2
+    const dome = Math.sqrt(Math.max(0, 1 - horizontal * horizontal))
+    return {
+      x: center.x + horizontal * scale * .22,
+      y: center.y - scale * (.07 + dome * .17) + v * scale * .1 + jitter * 3,
+    }
+  }
+
+  const tentacle = Math.round(u * 6)
+  const depth = (v - .38) / .62
+  return {
+    x: center.x + (tentacle - 3) * scale * .055 + Math.sin(depth * Math.PI * 2 + tentacle) * scale * .025,
+    y: center.y + scale * (.015 + depth * .37) + jitter * 4,
+  }
+}
+
+function mantaTarget({u, v}, center, scale, jitter) {
+  const side = u < .5 ? -1 : 1
+  const distance = Math.abs(u - .5) * 2
+  if (distance < .18) {
+    return {
+      x: center.x + (u - .5) * scale * .13,
+      y: center.y + (v - .5) * scale * .48,
+    }
+  }
+
+  const wingHeight = Math.sin(distance * Math.PI) * scale * .16
+  return {
+    x: center.x + side * scale * (.05 + distance * .39),
+    y: center.y + (v - .5) * wingHeight * 2 + jitter * 4,
+  }
+}
+
+function starfishTarget({u, v}, center, scale, jitter) {
+  const armPosition = u * 5
+  const arm = Math.floor(armPosition) % 5
+  const side = armPosition - Math.floor(armPosition) - .5
+  const distance = .07 + v * .34
+  const angle = -Math.PI / 2 + arm * Math.PI * 2 / 5 + side * (.52 - v * .3)
+  return {
+    x: center.x + Math.cos(angle) * scale * distance + jitter * 3,
+    y: center.y + Math.sin(angle) * scale * distance + jitter * 3,
+  }
+}
+
 function pigeonTarget({u, v}, center, scale, jitter) {
   if (v < .42) {
     return {
@@ -321,6 +374,9 @@ function creatureFeatureRole(creature, index) {
     butterfly: ["eye", "mark-wing"],
     fish: ["eye", "mark-gill"],
     octopus: ["eye-left", "eye-right"],
+    jellyfish: ["mark-bell-left", "mark-bell-right"],
+    manta: ["eye-left", "eye-right"],
+    starfish: ["mark-center"],
     pigeon: ["eye", "mark-wing"],
     rabbit: ["eye", "mark-body"],
   }
@@ -350,6 +406,17 @@ function creatureFeatureTarget(creature, role, width, height) {
     octopus: {
       "eye-left": {x: center.x - scale * .055, y: center.y - scale * .11},
       "eye-right": {x: center.x + scale * .055, y: center.y - scale * .11},
+    },
+    jellyfish: {
+      "mark-bell-left": {x: center.x - scale * .075, y: center.y - scale * .12},
+      "mark-bell-right": {x: center.x + scale * .075, y: center.y - scale * .12},
+    },
+    manta: {
+      "eye-left": {x: center.x - scale * .075, y: center.y - scale * .095},
+      "eye-right": {x: center.x + scale * .075, y: center.y - scale * .095},
+    },
+    starfish: {
+      "mark-center": {x: center.x, y: center.y},
     },
     pigeon: {
       eye: {x: center.x + scale * .23, y: center.y - scale * .16},
@@ -394,6 +461,22 @@ function animateCreatureTarget(creature, target, role, width, height, now) {
     const depth = Math.max(0, Math.min(1, (point.y - centerY) / (scale * .4)))
     point.x += Math.sin(phase * 1.15 + depth * 5 + point.x / scale * 3) * scale * .035 * depth
     point.y += Math.sin(phase * .65) * scale * .008
+  } else if (creature === "jellyfish") {
+    const depth = Math.max(0, Math.min(1, (point.y - centerY) / (scale * .4)))
+    const pulse = 1 + Math.sin(phase * 1.35) * .055
+    point.x = centerX + (point.x - centerX) * pulse
+    point.x += Math.sin(phase * 1.1 + depth * 6 + point.x / scale * 4) * scale * .028 * depth
+    point.y += Math.sin(phase * .7) * scale * .012
+  } else if (creature === "manta") {
+    const wingWeight = Math.min(1, Math.abs(point.x - centerX) / (scale * .42))
+    point.y += Math.sin(phase * 1.15) * scale * .065 * wingWeight
+    point.y += Math.sin(phase * .55) * scale * .008
+  } else if (creature === "starfish") {
+    const dx = point.x - centerX
+    const dy = point.y - centerY
+    const pulse = 1 + Math.sin(phase * .8 + Math.atan2(dy, dx) * 2) * .035
+    point.x = centerX + dx * pulse
+    point.y = centerY + dy * pulse
   } else if (creature === "pigeon") {
     const wingWeight = point.y < centerY - scale * .055 ? 1 : 0
     point.y += Math.sin(phase * 1.35 + point.x / scale * 2) * scale * .04 * wingWeight
@@ -417,6 +500,9 @@ function drawCreatureMycelium(graphic, creature, width, height, morph, now) {
   else if (creature === "butterfly") drawButterflyMycelium(graphic, center, scale, morph, now)
   else if (creature === "fish") drawFishMycelium(graphic, center, scale, morph, now)
   else if (creature === "octopus") drawOctopusMycelium(graphic, center, scale, morph, now)
+  else if (creature === "jellyfish") drawJellyfishMycelium(graphic, center, scale, morph, now)
+  else if (creature === "manta") drawMantaMycelium(graphic, center, scale, morph, now)
+  else if (creature === "starfish") drawStarfishMycelium(graphic, center, scale, morph, now)
   else drawSvgCreatureBody(graphic, creature, width, height, morph, now)
 }
 
@@ -568,6 +654,97 @@ function drawOctopusMycelium(graphic, center, scale, morph, now) {
   }
 
   drawFlowSignal(graphic, center.x, center.y - scale * .24, center.x, center.y + scale * .32, morph, now, 3)
+}
+
+function drawJellyfishMycelium(graphic, center, scale, morph, now) {
+  const pulse = 1 + Math.sin(now / 740) * .055
+  const rimY = center.y - scale * .015
+
+  for (let index = 0; index < 15; index++) {
+    const t = index / 14
+    const horizontal = (t - .5) * 2
+    const x = center.x + horizontal * scale * .225 * pulse
+    const dome = Math.sqrt(Math.max(0, 1 - horizontal * horizontal))
+    const topY = center.y - scale * (.07 + dome * .18)
+    graphic.moveTo(center.x, center.y - scale * .24)
+      .quadraticCurveTo(x, topY, x, rimY)
+      .stroke(livingStroke(index, morph, .76))
+    drawHyphaTip(graphic, x, rimY, index + 90, morph, now)
+  }
+
+  for (let index = 0; index < 9; index++) {
+    const offset = (index - 4) * scale * .047
+    const phase = now / (880 + index * 31) + index * .72
+    const sway = Math.sin(phase) * scale * .035
+    const length = scale * (.27 + deterministic(index * 23) * .13)
+    graphic.moveTo(center.x + offset, rimY)
+      .bezierCurveTo(
+        center.x + offset - sway,
+        rimY + length * .34,
+        center.x + offset + sway,
+        rimY + length * .7,
+        center.x + offset + sway * .45,
+        rimY + length
+      )
+      .stroke(livingStroke(index + 20, morph, .92))
+  }
+
+  drawFlowSignal(graphic, center.x, center.y - scale * .23, center.x, center.y + scale * .34, morph, now, 6)
+}
+
+function drawMantaMycelium(graphic, center, scale, morph, now) {
+  const flap = Math.sin(now / 870) * scale * .065
+
+  for (const side of [-1, 1]) {
+    for (let index = 0; index < 17; index++) {
+      const t = index / 16
+      const tipX = center.x + side * scale * (.08 + t * .36)
+      const wingShape = Math.sin(t * Math.PI) * scale * .14
+      const tipY = center.y + (index % 2 ? wingShape : -wingShape) * .48 + flap * (.2 + t * .8)
+      graphic.moveTo(center.x + side * scale * .018, center.y - scale * .08 + t * scale * .16)
+        .quadraticCurveTo(center.x + side * scale * (.13 + t * .13), center.y + flap * t, tipX, tipY)
+        .stroke(livingStroke(index + (side > 0 ? 30 : 0), morph, .78))
+      drawHyphaTip(graphic, tipX, tipY, index + (side > 0 ? 120 : 100), morph, now)
+    }
+  }
+
+  graphic.moveTo(center.x, center.y - scale * .2)
+    .lineTo(center.x, center.y + scale * .32)
+    .stroke(livingStroke(4, morph, 1.35))
+  graphic.moveTo(center.x, center.y + scale * .22)
+    .bezierCurveTo(center.x + scale * .025, center.y + scale * .31, center.x - scale * .025, center.y + scale * .39, center.x, center.y + scale * .45)
+    .stroke(livingStroke(8, morph, .9))
+
+  drawFlowSignal(graphic, center.x, center.y - scale * .2, center.x, center.y + scale * .43, morph, now, 7)
+}
+
+function drawStarfishMycelium(graphic, center, scale, morph, now) {
+  const pulse = Math.sin(now / 1100) * .018
+
+  for (let arm = 0; arm < 5; arm++) {
+    const baseAngle = -Math.PI / 2 + arm * Math.PI * 2 / 5
+    for (let index = 0; index < 9; index++) {
+      const side = (index / 8 - .5) * .45
+      const angle = baseAngle + side
+      const distance = scale * (.31 + Math.cos(side * Math.PI) * .055 + pulse * scale / scale)
+      const tip = {
+        x: center.x + Math.cos(angle) * distance,
+        y: center.y + Math.sin(angle) * distance,
+      }
+      const control = {
+        x: center.x + Math.cos(baseAngle + side * .35) * distance * .55,
+        y: center.y + Math.sin(baseAngle + side * .35) * distance * .55,
+      }
+      graphic.moveTo(center.x, center.y)
+        .quadraticCurveTo(control.x, control.y, tip.x, tip.y)
+        .stroke(livingStroke(arm * 11 + index, morph, .74))
+      if (index % 2 === 0) drawHyphaTip(graphic, tip.x, tip.y, arm * 20 + index, morph, now)
+    }
+  }
+
+  graphic.circle(center.x, center.y, scale * .075)
+    .stroke({color: 0xdcefc8, width: 1.2, alpha: morph * .35})
+  drawFlowSignal(graphic, center.x, center.y, center.x, center.y - scale * .35, morph, now, 8)
 }
 
 function drawPigeonMycelium(graphic, center, scale, morph, now) {
@@ -979,6 +1156,40 @@ function drawCreatureOutline(graphic, creature, width, height, morph, now) {
       .lineTo(centerX - scale * .26, centerY)
       .stroke(style)
     graphic.circle(centerX + scale * .19, centerY - scale * .035, 2.4).fill({color: 0xf6ffe8, alpha: alpha * 4})
+  } else if (creature === "jellyfish") {
+    const pulse = 1 + Math.sin(now / 740) * .055
+    graphic.moveTo(centerX - scale * .23 * pulse, centerY - scale * .015)
+      .bezierCurveTo(centerX - scale * .21, centerY - scale * .27, centerX + scale * .21, centerY - scale * .27, centerX + scale * .23 * pulse, centerY - scale * .015)
+      .quadraticCurveTo(centerX, centerY + scale * .045, centerX - scale * .23 * pulse, centerY - scale * .015)
+      .stroke(style)
+    for (let index = 0; index < 7; index++) {
+      const offset = (index - 3) * scale * .06
+      const sway = Math.sin(now / (900 + index * 31) + index) * scale * .035
+      graphic.moveTo(centerX + offset, centerY + scale * .005)
+        .bezierCurveTo(centerX + offset - sway, centerY + scale * .13, centerX + offset + sway, centerY + scale * .27, centerX + offset + sway * .4, centerY + scale * .38)
+        .stroke(style)
+    }
+  } else if (creature === "manta") {
+    const flap = Math.sin(now / 870) * scale * .055
+    graphic.moveTo(centerX, centerY - scale * .2)
+      .bezierCurveTo(centerX - scale * .14, centerY - scale * .11, centerX - scale * .32, centerY - scale * .05 + flap, centerX - scale * .44, centerY + flap)
+      .bezierCurveTo(centerX - scale * .29, centerY + scale * .16 + flap, centerX - scale * .11, centerY + scale * .1, centerX, centerY + scale * .23)
+      .bezierCurveTo(centerX + scale * .11, centerY + scale * .1, centerX + scale * .29, centerY + scale * .16 + flap, centerX + scale * .44, centerY + flap)
+      .bezierCurveTo(centerX + scale * .32, centerY - scale * .05 + flap, centerX + scale * .14, centerY - scale * .11, centerX, centerY - scale * .2)
+      .stroke(style)
+    graphic.moveTo(centerX, centerY + scale * .2)
+      .bezierCurveTo(centerX + scale * .025, centerY + scale * .3, centerX - scale * .02, centerY + scale * .4, centerX, centerY + scale * .46)
+      .stroke(style)
+  } else if (creature === "starfish") {
+    const points = []
+    for (let index = 0; index < 10; index++) {
+      const angle = -Math.PI / 2 + index * Math.PI / 5
+      const radius = index % 2 === 0 ? scale * .37 : scale * .14
+      points.push({x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius})
+    }
+    graphic.moveTo(points[0].x, points[0].y)
+    points.slice(1).forEach(point => graphic.lineTo(point.x, point.y))
+    graphic.lineTo(points[0].x, points[0].y).stroke(style)
   } else if (creature === "octopus") {
     graphic.ellipse(centerX, centerY - scale * .1, scale * .17, scale * .18).stroke(style)
     for (let index = 0; index < 6; index++) {
@@ -1013,6 +1224,9 @@ function creatureLabel(creature) {
     butterfly: "THE BUTTERFLY",
     fish: "THE FISH",
     octopus: "THE OCTOPUS",
+    jellyfish: "THE JELLYFISH",
+    manta: "THE MANTA RAY",
+    starfish: "THE STARFISH",
     pigeon: "THE PIGEON",
     rabbit: "THE RABBIT",
   }[creature]

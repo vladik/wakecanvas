@@ -7,6 +7,9 @@ defmodule WakeCanvas.Experience.CollectiveForm.Store do
   @maximum_local_radius 0.42
   @background_reach 0.68
   @maximum_route_degree 8
+  @maintenance_retired_threshold 2_000
+  @maintenance_database_threshold 25 * 1_024 * 1_024
+  @completed_cycles_to_keep 10
 
   def migrate(database_path) do
     with_raw_repo(database_path, fn ->
@@ -34,6 +37,80 @@ defmodule WakeCanvas.Experience.CollectiveForm.Store do
         |> Enum.map(&connection/1)
 
       %{cycle_id: cycle_id, contributions: contributions, connections: connections}
+    end)
+  end
+
+  def maintain(database_path, options \\ []) do
+    retired_threshold =
+      Keyword.get(options, :retired_threshold, @maintenance_retired_threshold)
+
+    database_threshold =
+      Keyword.get(options, :database_threshold, @maintenance_database_threshold)
+
+    completed_cycles_to_keep =
+      Keyword.get(options, :completed_cycles_to_keep, @completed_cycles_to_keep)
+
+    with_write_repo(database_path, fn ->
+      cycle_id = current_cycle_id!()
+
+      retired_before =
+        scalar!("SELECT COUNT(*) FROM connections WHERE cycle_id = ? AND state = 'retired'", [
+          cycle_id
+        ])
+
+      completed_before = scalar!("SELECT COUNT(*) FROM cycles WHERE status = 'complete'")
+      live_bytes_before = live_database_bytes!()
+
+      compact? =
+        retired_before > retired_threshold or live_bytes_before > database_threshold
+
+      retired_deleted =
+        if compact? do
+          query!(
+            """
+            DELETE FROM connections
+            WHERE cycle_id = ?
+              AND state = 'retired'
+              AND id NOT IN (
+                SELECT MAX(id)
+                FROM connections
+                WHERE cycle_id = ? AND state = 'retired'
+                GROUP BY MIN(source_id, target_id), MAX(source_id, target_id)
+              )
+            """,
+            [cycle_id, cycle_id]
+          ).num_rows
+        else
+          0
+        end
+
+      completed_cycle_ids =
+        query!(
+          "SELECT id FROM cycles WHERE status = 'complete' ORDER BY COALESCE(ended_at, started_at) DESC, id DESC LIMIT -1 OFFSET ?",
+          [completed_cycles_to_keep]
+        ).rows
+        |> List.flatten()
+
+      Enum.each(completed_cycle_ids, fn completed_cycle_id ->
+        query!("DELETE FROM connections WHERE cycle_id = ?", [completed_cycle_id])
+        query!("DELETE FROM contributions WHERE cycle_id = ?", [completed_cycle_id])
+        query!("DELETE FROM cycles WHERE id = ?", [completed_cycle_id])
+      end)
+
+      retired_after =
+        scalar!("SELECT COUNT(*) FROM connections WHERE cycle_id = ? AND state = 'retired'", [
+          cycle_id
+        ])
+
+      %{
+        compacted?: compact? or completed_cycle_ids != [],
+        retired_before: retired_before,
+        retired_after: retired_after,
+        retired_deleted: retired_deleted,
+        completed_cycles_before: completed_before,
+        completed_cycles_deleted: length(completed_cycle_ids),
+        live_bytes_before: live_bytes_before
+      }
     end)
   end
 
@@ -91,11 +168,11 @@ defmodule WakeCanvas.Experience.CollectiveForm.Store do
 
       route_history =
         query!(
-          "SELECT MIN(source_id, target_id), MAX(source_id, target_id), COUNT(*), MAX(COALESCE(retired_at, growth_started_at)) FROM connections WHERE cycle_id = ? GROUP BY MIN(source_id, target_id), MAX(source_id, target_id)",
+          "SELECT MIN(source_id, target_id), MAX(source_id, target_id), MAX(id), MAX(COALESCE(retired_at, growth_started_at)) FROM connections WHERE cycle_id = ? GROUP BY MIN(source_id, target_id), MAX(source_id, target_id)",
           [cycle_id]
         ).rows
-        |> Map.new(fn [left, right, count, last_event_at] ->
-          {pair(left, right), %{generation: count, last_event_at: last_event_at}}
+        |> Map.new(fn [left, right, latest_id, last_event_at] ->
+          {pair(left, right), %{generation: latest_id, last_event_at: last_event_at}}
         end)
 
       origin_counts =
@@ -733,4 +810,13 @@ defmodule WakeCanvas.Experience.CollectiveForm.Store do
 
   defp query!(sql, params \\ []),
     do: Ecto.Adapters.SQL.query!(Repo.get_dynamic_repo(), sql, params)
+
+  defp scalar!(sql, params \\ []), do: query!(sql, params).rows |> hd() |> hd()
+
+  defp live_database_bytes! do
+    page_count = scalar!("PRAGMA page_count")
+    free_pages = scalar!("PRAGMA freelist_count")
+    page_size = scalar!("PRAGMA page_size")
+    max(0, page_count - free_pages) * page_size
+  end
 end

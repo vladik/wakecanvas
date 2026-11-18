@@ -33,6 +33,15 @@ Photographs are optional. Position, approximate size, and optional colour are
 enough for the table projection; photographs can later support the wall display
 and cycle archive.
 
+## Startup maintenance
+
+Before its first evolution tick, an active instance checks its own SQLite data.
+When retired history exceeds 2,000 rows or live database pages exceed 25 MB, it
+keeps the newest retired route per node pair and removes older duplicates. It also
+retains the 10 newest completed cycles. Active routes, contributions, and the
+current cycle are never removed. SQLite reuses freed pages; startup maintenance
+does not run `VACUUM` or interrupt a running workshop.
+
 ## Development
 
 ```powershell
