@@ -8,10 +8,17 @@ defmodule WakeCanvas.Experience.CollectiveForm.DefinitionTest do
 
     assert Enum.map(definition.display_variants, & &1.id) == [
              "growing-mycelium",
-             "growing-mycelium-creature-reveals"
+             "growing-mycelium-creature-reveals",
+             "growing-mycelium-pareidolia"
            ]
 
     assert definition.config_schema["placement_source"].default == "operator"
-    assert Enum.map(definition.surfaces, & &1.path) == ["display", "contribute", "table"]
+
+    assert Enum.map(definition.surfaces, & &1.path) == [
+             "display",
+             "contribute",
+             "table",
+             "settings"
+           ]
   end
 end

@@ -75,6 +75,22 @@
 .cf-ui h1 { margin:.2rem 0 .7rem; font:500 clamp(2.3rem,6vw,4.5rem)/1 Georgia,serif; }
 .cf-lead { max-width:720px; color:#667060; line-height:1.6; }
 .cf-notice { margin:1.5rem 0; padding:1rem; border-radius:12px; background:#dcebd4; color:#2d5427; }
+.cf-settings__container { max-width:900px; margin:0 auto; }
+.cf-settings__back { display:inline-block; margin-bottom:2.5rem; color:#4d6248; font-weight:650; text-decoration:none; }
+.cf-settings__form { display:grid; gap:1.5rem; margin-top:2rem; padding:clamp(1rem,4vw,2rem); border-radius:20px; background:white; box-shadow:0 16px 50px #34402d14; }
+.cf-settings__form fieldset { display:grid; gap:1rem; margin:0; padding:0; border:0; }
+.cf-settings__form legend { font:600 1.4rem Georgia,serif; }
+.cf-settings__form fieldset>p { margin:0; color:#687163; line-height:1.5; }
+.cf-variant-grid { display:grid; gap:.8rem; }
+.cf-variant-card { display:flex; gap:.9rem; align-items:flex-start; padding:1rem; border:2px solid #dce1d7; border-radius:14px; background:#fff; cursor:pointer; }
+.cf-variant-card.is-selected { border-color:#547b4f; background:#edf5e9; }
+.cf-variant-card input { flex:0 0 auto; width:1.2rem; height:1.2rem; margin-top:.15rem; accent-color:#3f6641; }
+.cf-variant-card span { display:grid; gap:.3rem; }
+.cf-variant-card strong { font-size:1.02rem; }
+.cf-variant-card small { color:#687163; line-height:1.45; }
+.cf-settings__actions { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; padding-top:.5rem; }
+.cf-settings__actions a { color:#3f6641; font-weight:700; text-decoration:none; }
+.cf-settings__actions button { border:0; border-radius:10px; padding:.85rem 1.25rem; background:#334f36; color:white; font-weight:700; cursor:pointer; }
 .cf-form { display:grid; gap:1.2rem; margin-top:2rem; padding:clamp(1rem,4vw,2rem); border-radius:20px; background:white; box-shadow:0 16px 50px #34402d14; }
 .cf-form label { display:grid; gap:.45rem; font-weight:700; }
 .cf-form input,.cf-form select { box-sizing:border-box; width:100%; padding:.8rem 1rem; border:1px solid #cfd5c9; border-radius:10px; background:white; font:inherit; }
@@ -83,6 +99,11 @@
 .cf-console { max-width:none; }
 .cf-console__header { display:flex; justify-content:space-between; align-items:flex-start; gap:2rem; max-width:1500px; margin:0 auto 1.5rem; }
 .cf-console__header h1 { font-size:clamp(2rem,4vw,3.5rem); }
+.cf-pareidolia-panel { display:flex; justify-content:space-between; align-items:center; gap:2rem; max-width:1500px; margin:0 auto 1.25rem; padding:1rem 1.2rem; border:1px solid #cad5c4; border-radius:16px; background:#f9faf6; box-shadow:0 8px 30px #34402d0d; }
+.cf-pareidolia-panel h2 { margin:.1rem 0 .35rem; font:600 1.35rem Georgia,serif; }
+.cf-pareidolia-panel p { max-width:850px; margin:.25rem 0; color:#5f695a; line-height:1.45; }
+.cf-pareidolia-panel button { flex:0 0 auto; border:0; border-radius:10px; padding:.85rem 1.1rem; background:#334f36; color:white; font-weight:700; cursor:pointer; }
+.cf-pareidolia-panel .cf-pareidolia-status { margin-top:.55rem; color:#354d35; font-weight:700; }
 .cf-actions { display:flex; gap:.7rem; align-items:center; flex-wrap:wrap; }
 .cf-actions a { padding:.75rem 1rem; border:1px solid #73806c; border-radius:10px; color:#334f36; font-weight:700; text-decoration:none; }
 .cf-console__body { display:grid; grid-template-columns:minmax(240px,330px) 1fr; gap:1.25rem; max-width:1500px; margin:auto; }
@@ -106,4 +127,4 @@
 .cf-table-node { position:absolute; z-index:2; width:18px; height:18px; border-radius:50%; pointer-events:none; box-shadow:0 0 12px currentColor,0 0 28px #dceeb277; }
 .cf-table-node.is-selected { outline:3px solid white; outline-offset:5px; }
 .cf-table-help,.cf-empty { color:#70786b; line-height:1.5; }
-@media(max-width:850px){.cf-console__header{display:block}.cf-actions{margin-top:1rem}.cf-console__body{grid-template-columns:1fr}.cf-table{border-radius:24px}}
+@media(max-width:850px){.cf-console__header{display:block}.cf-actions{margin-top:1rem}.cf-pareidolia-panel{align-items:flex-start;flex-direction:column}.cf-console__body{grid-template-columns:1fr}.cf-table{border-radius:24px}}

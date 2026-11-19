@@ -19,6 +19,12 @@ belong to the Collective Form Experience under `assets/js/creatures/` and
 `assets/svg/creatures/`. Variants opt into that Experience-level subsystem; the
 Platform and Experience SDK do not own or serve a shared creature runtime.
 
+The optional **Growing Mycelium — Pareidolia** variant asks an interpreter to
+find recognizable forms in bounded subsets of the real network. Its request,
+candidate sheet, and validated response stay below the instance data directory.
+Development can use a manual Codex interpretation; a future local service uses
+the same provider-neutral contract. See `docs/pareidolia.md`.
+
 ## Operator model
 
 - **Placement source — Operator placement:** the operator adds, positions, moves,

@@ -1,7 +1,7 @@
 defmodule WakeCanvas.Experience.CollectiveForm.TableLive do
   use Phoenix.LiveView
 
-  alias WakeCanvas.Experience.CollectiveForm.Store
+  alias WakeCanvas.Experience.CollectiveForm.{Pareidolia, Store}
 
   @columns 20
   @rows 12
@@ -9,7 +9,13 @@ defmodule WakeCanvas.Experience.CollectiveForm.TableLive do
   @impl true
   def mount(_params, session, socket) do
     topic = "collective-form:#{session["instance_id"]}"
-    if connected?(socket), do: Phoenix.PubSub.subscribe(session["pubsub_server"], topic)
+
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(session["pubsub_server"], topic)
+
+      if get_in(session, ["config", "display_variant"]) == "growing-mycelium-pareidolia",
+        do: schedule_pareidolia_refresh()
+    end
 
     {:ok,
      socket
@@ -18,9 +24,15 @@ defmodule WakeCanvas.Experience.CollectiveForm.TableLive do
      |> assign(:instance_reference, session["instance_reference"] || session["instance_id"])
      |> assign(:instance_name, session["instance_name"] || "Collective Form")
      |> assign(:database_path, session["database_path"])
+     |> assign(:data_dir, session["data_dir"])
+     |> assign(
+       :display_variant,
+       get_in(session, ["config", "display_variant"]) || "growing-mycelium"
+     )
      |> assign(:pubsub_server, session["pubsub_server"])
      |> assign(:stylesheet_url, session["experience_stylesheet_url"])
      |> assign(:selected_id, nil)
+     |> assign(:pareidolia_status, Pareidolia.status(session["data_dir"]))
      |> load_snapshot()}
   end
 
@@ -62,8 +74,38 @@ defmodule WakeCanvas.Experience.CollectiveForm.TableLive do
     {:noreply, socket |> assign(:selected_id, nil) |> load_snapshot()}
   end
 
+  def handle_event("prepare-pareidolia", _params, socket) do
+    case Pareidolia.prepare(socket.assigns.data_dir, socket.assigns.snapshot) do
+      {:ok, result} ->
+        {:noreply,
+         socket
+         |> assign(:pareidolia_status, Pareidolia.status(socket.assigns.data_dir))
+         |> put_flash(
+           :info,
+           "Prepared #{result.candidate_count} candidates in #{result.directory}."
+         )}
+
+      {:error, :network_too_small} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Place enough connected contributions first (at least 3 connections)."
+         )}
+
+      {:error, reason} ->
+        {:noreply,
+         put_flash(socket, :error, "Could not prepare interpretation: #{inspect(reason)}")}
+    end
+  end
+
   @impl true
   def handle_info(:table_changed, socket), do: {:noreply, load_snapshot(socket)}
+
+  def handle_info(:pareidolia_refresh, socket) do
+    schedule_pareidolia_refresh()
+    {:noreply, assign(socket, :pareidolia_status, Pareidolia.status(socket.assigns.data_dir))}
+  end
 
   @impl true
   def render(assigns) do
@@ -74,6 +116,15 @@ defmodule WakeCanvas.Experience.CollectiveForm.TableLive do
         <div><p class="cf-eyebrow">{@instance_name}</p><h1>Table Console</h1><p class="cf-lead">Select a contribution, then choose its position on the table. Select it again to move it.</p></div>
         <div class="cf-actions"><a href={"/i/#{@instance_reference}/display"} target="_blank">Open projection ↗</a><button phx-click="reset" data-confirm="Start a new cycle and clear the current table?">Start new cycle</button></div>
       </header>
+      <section :if={@display_variant == "growing-mycelium-pareidolia"} class="cf-pareidolia-panel">
+        <div>
+          <p class="cf-eyebrow">Pareidolia interpretation</p>
+          <h2>Find forms in the current network</h2>
+          <p>Create a local candidate sheet from real connections. During development, ask Codex to interpret the latest Pareidolia request; the projection picks up the validated response automatically.</p>
+          <p class="cf-pareidolia-status">{pareidolia_status_text(@pareidolia_status)}</p>
+        </div>
+        <button phx-click="prepare-pareidolia">Prepare current network</button>
+      </section>
       <div class="cf-console__body">
         <aside class="cf-tray">
           <h2>Contributions</h2>
@@ -121,4 +172,19 @@ defmodule WakeCanvas.Experience.CollectiveForm.TableLive do
   defp node_style(item),
     do:
       "left:#{item.x * 100}%;top:#{item.y * 100}%;background:#{item.color};transform:translate(-50%,-50%) scale(#{item.size})"
+
+  defp pareidolia_status_text(%{status: "ready", interpretations: interpretations}),
+    do: "Ready · #{length(interpretations)} interpretation(s) available on the projection."
+
+  defp pareidolia_status_text(%{status: "awaiting_interpretation", candidateCount: count}),
+    do: "Waiting for interpretation · #{count} candidates prepared."
+
+  defp pareidolia_status_text(%{status: "invalid", error: error}),
+    do: "The response needs attention: #{error}."
+
+  defp pareidolia_status_text(_status),
+    do: "No analysis package prepared for this instance yet."
+
+  defp schedule_pareidolia_refresh,
+    do: Process.send_after(self(), :pareidolia_refresh, 2_000)
 end

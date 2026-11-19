@@ -9,6 +9,7 @@ config :esbuild,
     args: ~w(
       js/variants/growing-mycelium.js
       js/variants/growing-mycelium-creature-reveals.js
+      js/variants/growing-mycelium-pareidolia.js
       --bundle
       --format=esm
       --target=es2022

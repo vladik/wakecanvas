@@ -17,7 +17,7 @@ defmodule WakeCanvas.Experience.CollectiveForm do
     %Definition{
       id: "org.wakecanvas.experience.collective-form",
       name: "Collective Form",
-      version: "0.2.0",
+      version: "0.3.0",
       otp_application: :wake_canvas_experience_collective_form,
       stylesheet: "static/experience.css",
       surfaces: [
@@ -41,6 +41,13 @@ defmodule WakeCanvas.Experience.CollectiveForm do
           module: WakeCanvas.Experience.CollectiveForm.TableLive,
           role: :operator,
           label: "Table Console"
+        },
+        %Surface{
+          id: :settings,
+          path: "settings",
+          module: WakeCanvas.Experience.CollectiveForm.SettingsLive,
+          role: :operator,
+          label: "Collective Form Settings"
         }
       ],
       default_display_variant: "growing-mycelium",
@@ -58,6 +65,13 @@ defmodule WakeCanvas.Experience.CollectiveForm do
           description:
             "The living network periodically transforms into a creature, then dissolves back into the collective organism.",
           entrypoint: "static/variants/growing-mycelium-creature-reveals.js"
+        },
+        %DisplayVariant{
+          id: "growing-mycelium-pareidolia",
+          label: "Growing Mycelium — Pareidolia",
+          description:
+            "The living network reveals recognizable forms already present in its real connections.",
+          entrypoint: "static/variants/growing-mycelium-pareidolia.js"
         }
       ],
       config_schema: %{
@@ -69,7 +83,11 @@ defmodule WakeCanvas.Experience.CollectiveForm do
         "display_variant" => %{
           type: :enum,
           default: "growing-mycelium",
-          values: ["growing-mycelium", "growing-mycelium-creature-reveals"]
+          values: [
+            "growing-mycelium",
+            "growing-mycelium-creature-reveals",
+            "growing-mycelium-pareidolia"
+          ]
         }
       }
     }

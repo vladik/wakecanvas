@@ -8,7 +8,7 @@
     "display_variant": {
       "default": "growing-mycelium",
       "type": "enum",
-      "values": ["growing-mycelium", "growing-mycelium-creature-reveals"]
+      "values": ["growing-mycelium", "growing-mycelium-creature-reveals", "growing-mycelium-pareidolia"]
     },
     "placement_source": {
       "default": "operator",
@@ -29,6 +29,12 @@
       "entrypoint": "static/variants/growing-mycelium-creature-reveals.js",
       "id": "growing-mycelium-creature-reveals",
       "label": "Growing Mycelium — Creature Reveals"
+    },
+    {
+      "description": "The living network reveals recognizable forms already present in its real connections.",
+      "entrypoint": "static/variants/growing-mycelium-pareidolia.js",
+      "id": "growing-mycelium-pareidolia",
+      "label": "Growing Mycelium — Pareidolia"
     }
   ],
   "elixirRequirement": ">= 1.20.0 and < 2.0.0",
@@ -58,8 +64,14 @@
       "module": "WakeCanvas.Experience.CollectiveForm.TableLive",
       "path": "table",
       "role": "operator"
+    },
+    {
+      "id": "settings",
+      "module": "WakeCanvas.Experience.CollectiveForm.SettingsLive",
+      "path": "settings",
+      "role": "operator"
     }
   ],
   "target": "any",
-  "version": "0.2.0"
+  "version": "0.3.0"
 }
